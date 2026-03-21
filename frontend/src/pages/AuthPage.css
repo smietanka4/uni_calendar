@@ -1,31 +1,60 @@
-/* Auth pages shared layout */
+/* Terminal Auth Screen */
 .auth-page {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
-  background: radial-gradient(ellipse at 50% 0%, rgba(45,110,245,0.12) 0%, transparent 60%),
-              var(--bg);
+  /* Pixel grid background */
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,8,20,0.3) 2px, rgba(0,8,20,0.3) 4px),
+    linear-gradient(135deg, #020c18 0%, #050f24 50%, #020c18 100%);
 }
 
 .auth-card {
   width: 100%;
-  max-width: 420px;
-  padding: 2.5rem 2rem;
-  box-shadow: var(--shadow);
+  max-width: 440px;
+  padding: 2rem 2rem;
+  border: 2px solid var(--border);
+  box-shadow: 6px 6px 0 var(--primary-dim);
+}
+
+/* Terminal window title bar */
+.auth-card::before {
+  content: '[ KALENDARZ.EXE ]──────────────────';
+  display: block;
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 0.6rem;
+  margin-bottom: 1.5rem;
 }
 
 .auth-header {
-  text-align: center;
-  margin-bottom: 2rem;
+  text-align: left;
+  margin-bottom: 1.5rem;
 }
 .auth-icon {
-  font-size: 2.5rem;
-  display: block;
-  margin-bottom: 0.75rem;
+  font-size: 2rem;
+  display: none; /* hide emoji, terminal style */
 }
 .auth-header h1 {
-  font-size: 1.4rem;
-  margin-bottom: 0.25rem;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  color: var(--primary);
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 10px var(--primary-glow);
 }
+.auth-header h1::after {
+  content: '_';
+  animation: blink 1s step-start infinite;
+  color: var(--cursor);
+}
+.auth-header p {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+}
+.auth-header p::before { content: '// '; color: var(--border-bright); }
