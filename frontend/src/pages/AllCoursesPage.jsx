@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import client from '../api/client'
 import './AllCoursesPage.css'
 
@@ -10,6 +11,7 @@ function typBadgeClass(typ) {
 }
 
 export default function AllCoursesPage() {
+  const navigate = useNavigate()
   const [zajecia, setZajecia] = useState([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
@@ -128,23 +130,32 @@ export default function AllCoursesPage() {
                           onClick={() => handleDelete(z.id)}
                           disabled={deletingId === z.id}
                         >
-                          {deletingId === z.id ? '…' : 'Usuń'}
+                          {deletingId === z.id ? '…' : 'USUŃ'}
                         </button>
                         <button
                           className="btn btn-ghost btn-sm"
                           onClick={() => setConfirm(null)}
                         >
-                          Anuluj
+                          ANULUJ
                         </button>
                       </div>
                     ) : (
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => setConfirm(z.id)}
-                        title="Usuń zajęcia"
-                      >
-                        🗑
-                      </button>
+                      <div className="flex gap-1">
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => navigate(`/edytuj/${z.id}`)}
+                          title="Edytuj zajęcia"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => setConfirm(z.id)}
+                          title="Usuń zajęcia"
+                        >
+                          🗑
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>

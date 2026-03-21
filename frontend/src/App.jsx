@@ -7,6 +7,7 @@ import RegisterPage from './pages/RegisterPage'
 import WeekPage from './pages/WeekPage'
 import AllCoursesPage from './pages/AllCoursesPage'
 import AddCoursePage from './pages/AddCoursePage'
+import EditCoursePage from './pages/EditCoursePage'
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
             <Route path="/" element={<WeekPage />} />
             <Route path="/wszystkie" element={<AllCoursesPage />} />
             <Route path="/dodaj" element={<AddCoursePage />} />
+            <Route path="/edytuj/:id" element={<EditCoursePage />} />
           </Route>
 
           {/* Fallback */}

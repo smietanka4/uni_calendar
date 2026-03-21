@@ -16,7 +16,7 @@ class ZajeciaViewSet(viewsets.ModelViewSet):
 
     serializer_class = ZajeciaSerializer
     permission_classes = [IsAuthenticated]
-    http_method_names = ["get", "post", "delete", "head", "options"]
+    http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
 
     def get_queryset(self):
         qs = Zajecia.objects.filter(uzytkownik=self.request.user)
