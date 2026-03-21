@@ -1,0 +1,15 @@
+[
+  {
+    "id": "674d5080",
+    "nazwa": "Technologie chmurowe",
+    "typ": "Wykład",
+    "dzien_tygodnia": 0,
+    "godzina_start": "08:30",
+    "czas_trwania_min": 90,
+    "data_od": "2026-03-23",
+    "data_do": "2026-04-24",
+    "sala": "1.14",
+    "prowadzacy": "Jakub Neumann",
+    "notatki": ""
+  }
+]
