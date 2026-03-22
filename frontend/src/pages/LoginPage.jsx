@@ -35,8 +35,6 @@ export default function LoginPage() {
           <p className="text-muted">Zaloguj się do swojego konta</p>
         </div>
 
-        {error && <div className="alert alert-error">{error}</div>}
-
         <form onSubmit={handleSubmit} noValidate>
           <div className="form-group">
             <label htmlFor="username">Nazwa użytkownika</label>
@@ -46,6 +44,7 @@ export default function LoginPage() {
               placeholder="jan.kowalski"
               value={form.username}
               onChange={set('username')}
+              autoComplete="username"
               autoFocus
               required
             />
@@ -58,9 +57,12 @@ export default function LoginPage() {
               placeholder="••••••••"
               value={form.password}
               onChange={set('password')}
+              autoComplete="current-password"
               required
             />
           </div>
+          
+          {error && <div className="alert alert-error mb-2">{error}</div>}
           <button
             className="btn btn-primary w-full mt-2"
             type="submit"

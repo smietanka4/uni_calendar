@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import client from '../api/client'
 
@@ -22,6 +22,7 @@ const DAYS = [
 ]
 
 const EMPTY = {
+  kalendarz: '',
   nazwa: '',
   typ: 'WYK',
   dzien_tygodnia: 0,
@@ -40,6 +41,20 @@ export default function AddCoursePage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
+  
+  const [kalendarze, setKalendarze] = useState([])
+
+  useEffect(() => {
+    client.get('/kalendarze/')
+      .then(res => {
+        const owned = res.data.filter(k => k.czy_wlasciciel);
+        setKalendarze(owned);
+        if (owned.length > 0) {
+          setForm(p => ({ ...p, kalendarz: owned[0].id }));
+        }
+      })
+      .catch(() => setError('Nie udało się pobrać twoich kalendarzy.'))
+  }, [])
 
   const set = (k) => (e) =>
     setForm((p) => ({ ...p, [k]: e.target.type === 'number' ? Number(e.target.value) : e.target.value }))
@@ -50,6 +65,8 @@ export default function AddCoursePage() {
     setSuccess('')
 
     if (!form.nazwa.trim()) { setError('Podaj nazwę przedmiotu.'); return }
+    if (!form.kalendarz) { setError('Wybierz grupę do przypisania zajęć.'); return }
+    if (!form.kalendarz) { setError('Najpierw utwórz lub wybierz kalendarz / grupę w zakładce GRUPY.'); return }
     if (!form.data_od || !form.data_do) { setError('Podaj daty początku i końca zajęć.'); return }
     if (form.data_do < form.data_od) { setError('Data końca musi być późniejsza niż data początku.'); return }
 
@@ -79,6 +96,16 @@ export default function AddCoursePage() {
       {success && <div className="alert alert-success">{success}</div>}
 
       <form onSubmit={handleSubmit} className="card" noValidate>
+        {/* Kalendarz Selector */}
+        <div className="form-group mb-1">
+          <label htmlFor="add-kalendarz">Wybierz Grupe / Kalendarz *</label>
+          <select id="add-kalendarz" value={form.kalendarz} onChange={set('kalendarz')} required>
+            <option value="" disabled>-- Wybierz grupę --</option>
+            {kalendarze.map(k => <option key={k.id} value={k.id}>{k.nazwa}</option>)}
+          </select>
+          {kalendarze.length === 0 && <span className="text-muted text-sm d-block mt-1">⚠️ Nie masz żadnych kalendarzy! Przejdź do zakładki GRUPY.</span>}
+        </div>
+
         {/* Nazwa + Typ */}
         <div className="form-row">
           <div className="form-group">

@@ -8,6 +8,7 @@ import WeekPage from './pages/WeekPage'
 import AllCoursesPage from './pages/AllCoursesPage'
 import AddCoursePage from './pages/AddCoursePage'
 import EditCoursePage from './pages/EditCoursePage'
+import CalendarsPage from './pages/CalendarsPage'
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
           <Route element={<PrivateRoute />}>
             <Route path="/" element={<WeekPage />} />
             <Route path="/wszystkie" element={<AllCoursesPage />} />
+            <Route path="/grupy" element={<CalendarsPage />} />
             <Route path="/dodaj" element={<AddCoursePage />} />
             <Route path="/edytuj/:id" element={<EditCoursePage />} />
           </Route>

@@ -48,8 +48,6 @@ export default function RegisterPage() {
           <p className="text-muted">Utwórz nowe konto</p>
         </div>
 
-        {error && <div className="alert alert-error">{error}</div>}
-
         <form onSubmit={handleSubmit} noValidate>
           <div className="form-group">
             <label htmlFor="reg-username">Nazwa użytkownika</label>
@@ -59,6 +57,7 @@ export default function RegisterPage() {
               placeholder="jan.kowalski"
               value={form.username}
               onChange={set('username')}
+              autoComplete="username"
               autoFocus
               required
             />
@@ -71,6 +70,7 @@ export default function RegisterPage() {
               placeholder="jan@uczelnia.pl"
               value={form.email}
               onChange={set('email')}
+              autoComplete="email"
             />
           </div>
           <div className="form-row">
@@ -82,6 +82,7 @@ export default function RegisterPage() {
                 placeholder="••••••••"
                 value={form.password}
                 onChange={set('password')}
+                autoComplete="new-password"
                 required
               />
             </div>
@@ -93,10 +94,13 @@ export default function RegisterPage() {
                 placeholder="••••••••"
                 value={form.password2}
                 onChange={set('password2')}
+                autoComplete="new-password"
                 required
               />
             </div>
           </div>
+          
+          {error && <div className="alert alert-error mb-2">{error}</div>}
           <button
             className="btn btn-primary w-full mt-2"
             type="submit"

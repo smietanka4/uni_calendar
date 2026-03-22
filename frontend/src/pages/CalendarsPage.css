@@ -1,0 +1,26 @@
+.calendars-grid {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .calendars-grid {
+    flex-direction: column;
+  }
+}
+
+.cal-item {
+  border: 1px dashed var(--border);
+  background: var(--surface-2);
+  transition: all var(--transition);
+}
+
+.cal-item:hover {
+  border-color: var(--primary);
+  background: var(--surface);
+  box-shadow: 2px 2px 0 var(--primary-dim);
+}
+
+.border-dashed {
+  border-bottom: 1px dashed var(--border);
+}

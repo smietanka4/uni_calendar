@@ -88,12 +88,16 @@ export default function WeekPage() {
         <div className="modal-overlay" onClick={() => setSelectedEvent(null)}>
           <div className="modal-content card" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>[ {selectedEvent.nazwa} ]</h2>
+              <h2>
+                [ {selectedEvent.nazwa} ]
+                {!selectedEvent.czy_wlasciciel && <span className="ml-1" title="Zajęcia tylko do odczytu">🔒</span>}
+              </h2>
               <button className="btn-close" onClick={() => setSelectedEvent(null)}>X</button>
             </div>
             <div className="modal-body">
               {deleteError && <div className="alert alert-error mb-2">{deleteError}</div>}
               <p>&gt; TYP: <span className={typBadgeClass(selectedEvent.typ)}>{selectedEvent.typ_display}</span></p>
+              <p>&gt; GRUPA: <span className="text-bright bg-muted px-1" style={{background: 'rgba(0,0,0,0.5)', padding: '2px 4px'}}>{selectedEvent.kalendarz_nazwa}</span></p>
               <p>&gt; CZAS: <span className="text-bright">{selectedEvent.godzina_start.slice(0,5)}–{selectedEvent.godzina_koniec}</span> <span className="text-muted">({selectedEvent.czas_trwania_min} min)</span></p>
               <p>&gt; SALA: <span className="text-bright">{selectedEvent.sala || '—'}</span></p>
               <p>&gt; PROW.: <span className="text-bright">{selectedEvent.prowadzacy || '—'}</span></p>
@@ -106,21 +110,28 @@ export default function WeekPage() {
                 </div>
               )}
             </div>
-            <div className="modal-footer mt-3 flex gap-1">
-              <button 
-                className="btn btn-ghost w-full"
-                onClick={() => navigate(`/edytuj/${selectedEvent.id}`)}
-              >
-                ✏️ EDYTUJ
-              </button>
-              <button 
-                className="btn btn-danger w-full" 
-                onClick={() => handleDelete(selectedEvent.id)}
-                disabled={deleting}
-              >
-                {deleting ? 'USUWANIE...' : '🗑️ USUŃ'}
-              </button>
-            </div>
+            {selectedEvent.czy_wlasciciel && (
+              <div className="modal-footer mt-3 flex gap-1">
+                <button 
+                  className="btn btn-ghost w-full"
+                  onClick={() => navigate(`/edytuj/${selectedEvent.id}`)}
+                >
+                  ✏️ EDYTUJ
+                </button>
+                <button 
+                  className="btn btn-danger w-full" 
+                  onClick={() => handleDelete(selectedEvent.id)}
+                  disabled={deleting}
+                >
+                  {deleting ? 'USUWANIE...' : '🗑️ USUŃ'}
+                </button>
+              </div>
+            )}
+            {!selectedEvent.czy_wlasciciel && (
+               <div className="modal-footer mt-3">
+                 <p className="text-muted text-sm text-center">Tylko administrator grupy może edytować te zajęcia.</p>
+               </div>
+            )}
           </div>
         </div>
       )}

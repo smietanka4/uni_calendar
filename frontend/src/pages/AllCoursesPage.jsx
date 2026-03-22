@@ -99,6 +99,7 @@ export default function AllCoursesPage() {
               <tr>
                 <th>Nazwa</th>
                 <th>Typ</th>
+                <th>Grupa</th>
                 <th>Dzień</th>
                 <th>Godzina</th>
                 <th>Sala</th>
@@ -115,6 +116,11 @@ export default function AllCoursesPage() {
                     {z.notatki && <div className="text-muted text-sm">{z.notatki}</div>}
                   </td>
                   <td><span className={typBadgeClass(z.typ)}>{z.typ_display}</span></td>
+                  <td>
+                    <span className="text-bright bg-muted px-1" style={{background: 'rgba(0,0,0,0.5)', padding: '2px 4px', fontSize: '0.8rem'}}>
+                      {z.kalendarz_nazwa}
+                    </span>
+                  </td>
                   <td>{DAYS[z.dzien_tygodnia]}</td>
                   <td className="nowrap">{z.godzina_start.slice(0,5)}–{z.godzina_koniec}</td>
                   <td>{z.sala || '—'}</td>
@@ -123,39 +129,43 @@ export default function AllCoursesPage() {
                     {z.data_od}<br /><span className="text-muted">do {z.data_do}</span>
                   </td>
                   <td>
-                    {confirm === z.id ? (
-                      <div className="flex gap-1">
-                        <button
-                          className="btn btn-danger btn-sm"
-                          onClick={() => handleDelete(z.id)}
-                          disabled={deletingId === z.id}
-                        >
-                          {deletingId === z.id ? '…' : 'USUŃ'}
-                        </button>
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => setConfirm(null)}
-                        >
-                          ANULUJ
-                        </button>
-                      </div>
+                    {z.czy_wlasciciel ? (
+                      confirm === z.id ? (
+                        <div className="flex gap-1" style={{ justifyContent: 'flex-end' }}>
+                          <button
+                            className="btn btn-danger btn-sm"
+                            onClick={() => handleDelete(z.id)}
+                            disabled={deletingId === z.id}
+                          >
+                            {deletingId === z.id ? '…' : 'USUŃ'}
+                          </button>
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => setConfirm(null)}
+                          >
+                            ANULUJ
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-1" style={{ justifyContent: 'flex-end' }}>
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => navigate(`/edytuj/${z.id}`)}
+                            title="Edytuj zajęcia"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => setConfirm(z.id)}
+                            title="Usuń zajęcia"
+                          >
+                            🗑
+                          </button>
+                        </div>
+                      )
                     ) : (
-                      <div className="flex gap-1">
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => navigate(`/edytuj/${z.id}`)}
-                          title="Edytuj zajęcia"
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => setConfirm(z.id)}
-                          title="Usuń zajęcia"
-                        >
-                          🗑
-                        </button>
-                      </div>
+                      <span className="text-muted" title="Zajęcia tylko do odczytu">🔒 READ-ONLY</span>
                     )}
                   </td>
                 </tr>
