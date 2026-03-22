@@ -17,22 +17,35 @@ export default function RegisterPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    if (form.password !== form.password2) {
+    
+    // Uzywamy FormData aby obejsc problem z Chrome Autofill niezmieniającym stanu Reacta
+    const formData = new FormData(e.target)
+    const submittedUsername = formData.get('username') || form.username
+    const submittedEmail = formData.get('email') || form.email
+    const submittedPassword = formData.get('password') || form.password
+    const submittedPassword2 = formData.get('password2') || form.password2
+
+    if (submittedPassword !== submittedPassword2) {
       setError('Hasła nie są identyczne.')
       return
     }
     setLoading(true)
     try {
-      await register(form.username, form.email, form.password, form.password2)
+      await register(submittedUsername, submittedEmail, submittedPassword, submittedPassword2)
       navigate('/')
     } catch (err) {
       const data = err.response?.data || {}
-      const msg = data.username?.[0]
-        || data.password?.[0]
-        || data.password2?.[0]
-        || data.email?.[0]
-        || data.detail
-        || 'Błąd rejestracji.'
+      let msg = 'Błąd rejestracji. Sprawdź poprawność danych (np. silne hasło).'
+      
+      if (typeof data === 'object' && data !== null) {
+        const messages = []
+        for (const val of Object.values(data)) {
+          if (Array.isArray(val)) messages.push(...val)
+          else if (typeof val === 'string') messages.push(val)
+        }
+        if (messages.length > 0) msg = messages[0]
+      }
+      
       setError(msg)
     } finally {
       setLoading(false)
@@ -53,6 +66,7 @@ export default function RegisterPage() {
             <label htmlFor="reg-username">Nazwa użytkownika</label>
             <input
               id="reg-username"
+              name="username"
               type="text"
               placeholder="jan.kowalski"
               value={form.username}
@@ -66,6 +80,7 @@ export default function RegisterPage() {
             <label htmlFor="reg-email">E-mail</label>
             <input
               id="reg-email"
+              name="email"
               type="email"
               placeholder="jan@uczelnia.pl"
               value={form.email}
@@ -78,6 +93,7 @@ export default function RegisterPage() {
               <label htmlFor="reg-password">Hasło</label>
               <input
                 id="reg-password"
+                name="password"
                 type="password"
                 placeholder="••••••••"
                 value={form.password}
@@ -90,6 +106,7 @@ export default function RegisterPage() {
               <label htmlFor="reg-password2">Powtórz hasło</label>
               <input
                 id="reg-password2"
+                name="password2"
                 type="password"
                 placeholder="••••••••"
                 value={form.password2}

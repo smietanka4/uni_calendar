@@ -41,6 +41,7 @@ class ZajeciaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Zajecia
         fields = '__all__'
+        read_only_fields = ['kalendarz']
 
     def get_godzina_koniec(self, obj):
         start_datetime = datetime.combine(datetime.today(), obj.godzina_start)

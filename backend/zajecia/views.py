@@ -76,11 +76,12 @@ class ZajeciaViewSet(viewsets.ModelViewSet):
         return qs
 
     def perform_create(self, serializer):
-        kalendarz = serializer.validated_data.get('kalendarz')
-        if kalendarz.wlasciciel != self.request.user:
-            from rest_framework.exceptions import PermissionDenied
-            raise PermissionDenied("Możesz dodawać zajęcia tylko do kalendarza, którego jesteś właścicielem.")
-        serializer.save()
+        # Automatyczne znalezienie lub stworzenie jedynego Kalendarza dla użytkownika
+        kalendarz, created = Kalendarz.objects.get_or_create(
+            wlasciciel=self.request.user,
+            defaults={'nazwa': f"Plan zajęć ({self.request.user.username})"}
+        )
+        serializer.save(kalendarz=kalendarz)
 
     @action(detail=False, methods=["get"], url_path="tydzien")
     def tydzien(self, request):

@@ -34,6 +34,7 @@ export default function Navbar() {
         <div className="navbar-links">
           {navLink('/', 'Tydzień')}
           {navLink('/wszystkie', 'Wszystkie')}
+          {navLink('/grupy', 'Grupy')}
           {navLink('/dodaj', '+ Dodaj')}
         </div>
 

@@ -29,14 +29,8 @@ export default function EditCoursePage() {
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
   const [fetchLoading, setFetchLoading] = useState(true)
-  const [kalendarze, setKalendarze] = useState([])
 
   useEffect(() => {
-    // 1. Fetch own calendars
-    client.get('/kalendarze/')
-      .then(res => setKalendarze(res.data.filter(k => k.czy_wlasciciel)))
-      .catch(() => setError('Błąd pobierania kalendarzy.'))
-
     // 2. Fetch course details
     client.get(`/zajecia/${id}/`)
       .then(res => {
@@ -63,7 +57,6 @@ export default function EditCoursePage() {
     setSuccess('')
 
     if (!form.nazwa.trim()) { setError('Podaj nazwę przedmiotu.'); return }
-    if (!form.kalendarz) { setError('Wybierz grupę do przypisania zajęć.'); return }
     if (!form.data_od || !form.data_do) { setError('Podaj daty początku i końca zajęć.'); return }
     if (form.data_do < form.data_od) { setError('Data końca musi być późniejsza niż data początku.'); return }
 
@@ -95,15 +88,6 @@ export default function EditCoursePage() {
       {success && <div className="alert alert-success">{success}</div>}
 
       <form onSubmit={handleSubmit} className="card" noValidate>
-        {/* Kalendarz Selector */}
-        <div className="form-group mb-1">
-          <label htmlFor="edit-kalendarz">Wybierz Grupę / Kalendarz *</label>
-          <select id="edit-kalendarz" value={form.kalendarz} onChange={set('kalendarz')} required>
-            <option value="" disabled>-- Wybierz grupę --</option>
-            {kalendarze.map(k => <option key={k.id} value={k.id}>{k.nazwa}</option>)}
-          </select>
-        </div>
-
         {/* Nazwa + Typ */}
         <div className="form-row">
           <div className="form-group">

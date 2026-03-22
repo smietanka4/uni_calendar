@@ -20,7 +20,17 @@ export default function LoginPage() {
       await login(form.username, form.password)
       navigate('/')
     } catch (err) {
-      setError(err.response?.data?.error || 'Błąd logowania. Sprawdź dane.')
+      const data = err.response?.data || {}
+      let msg = 'Błąd logowania. Sprawdź dane.'
+      if (typeof data === 'object' && data !== null) {
+        const messages = []
+        for (const val of Object.values(data)) {
+          if (Array.isArray(val)) messages.push(...val)
+          else if (typeof val === 'string') messages.push(val)
+        }
+        if (messages.length > 0) msg = messages[0]
+      }
+      setError(msg)
     } finally {
       setLoading(false)
     }
@@ -76,6 +86,9 @@ export default function LoginPage() {
         <p className="text-center text-sm text-muted">
           Nie masz konta?{' '}
           <Link to="/register">Zarejestruj się</Link>
+        </p>
+        <p className="text-center text-sm text-muted mt-1">
+          Zapomniałeś hasła? <Link to="/zapomnialem-hasla">Zresetuj je</Link>
         </p>
       </div>
     </div>

@@ -24,7 +24,7 @@ export function AuthProvider({ children }) {
 
   const register = useCallback(async (username, email, password, password2) => {
     const { data } = await client.post('/auth/register/', {
-      username, email, password, password2,
+      username, email, password, password_confirm: password2,
     })
     localStorage.setItem('access', data.access)
     localStorage.setItem('refresh', data.refresh)
