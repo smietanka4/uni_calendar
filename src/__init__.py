@@ -1,1 +1,0 @@
-'''Top-level package for calendar domain models.'''

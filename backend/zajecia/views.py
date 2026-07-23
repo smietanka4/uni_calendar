@@ -2,9 +2,13 @@ from datetime import date, timedelta
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.contrib.auth import get_user_model
 from django.db.models import Q
 from .models import Zajecia, Kalendarz
 from .serializers import ZajeciaSerializer, KalendarzSerializer
+
+User = get_user_model()
+
 
 class KalendarzViewSet(viewsets.ModelViewSet):
     serializer_class = KalendarzSerializer
@@ -21,24 +25,24 @@ class KalendarzViewSet(viewsets.ModelViewSet):
     def join(self, request):
         kalendarz_id = request.data.get('id')
         haslo = request.data.get('haslo', '')
-        
+
         if not kalendarz_id:
             return Response({'error': 'Podaj ID kalendarza.'}, status=status.HTTP_400_BAD_REQUEST)
-            
+
         try:
             kalendarz = Kalendarz.objects.get(id=kalendarz_id)
             if kalendarz.haslo and kalendarz.haslo != haslo:
                 return Response({'error': 'Nieprawidłowe hasło.'}, status=status.HTTP_403_FORBIDDEN)
-            
+
             if kalendarz.wlasciciel == request.user:
                 return Response({'error': 'Jesteś właścicielem tego kalendarza.'}, status=status.HTTP_400_BAD_REQUEST)
-                
+
             kalendarz.subskrybenci.add(request.user)
             return Response({'message': 'Dołączono do kalendarza.'}, status=status.HTTP_200_OK)
-            
+
         except Kalendarz.DoesNotExist:
             return Response({'error': 'Kalendarz nie istnieje.'}, status=status.HTTP_404_NOT_FOUND)
-    
+
     @action(detail=True, methods=['post'], url_path='leave')
     def leave(self, request, pk=None):
         kalendarz = self.get_object()
@@ -46,6 +50,61 @@ class KalendarzViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Nie możesz opuścić powiązanego własnego kalendarza.'}, status=status.HTTP_400_BAD_REQUEST)
         kalendarz.subskrybenci.remove(request.user)
         return Response({'message': 'Opuszczono kalendarz.'}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='invite')
+    def invite(self, request, pk=None):
+        """Zaproś użytkownika po nazwie użytkownika (tylko właściciel)."""
+        kalendarz = self.get_object()
+
+        if kalendarz.wlasciciel != request.user:
+            return Response(
+                {'error': 'Tylko właściciel może zapraszać użytkowników.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        username = request.data.get('username', '').strip()
+        if not username:
+            return Response({'error': 'Podaj nazwę użytkownika.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            invited_user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            return Response({'error': f'Użytkownik "{username}" nie istnieje.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if invited_user == request.user:
+            return Response({'error': 'Nie możesz zaprosić samego siebie.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if kalendarz.subskrybenci.filter(pk=invited_user.pk).exists():
+            return Response({'error': f'Użytkownik "{username}" już ma dostęp do tego planu.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        kalendarz.subskrybenci.add(invited_user)
+        return Response({'message': f'Użytkownik "{username}" został zaproszony do planu.'}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='kick')
+    def kick(self, request, pk=None):
+        """Usuń użytkownika z planu (tylko właściciel)."""
+        kalendarz = self.get_object()
+
+        if kalendarz.wlasciciel != request.user:
+            return Response(
+                {'error': 'Tylko właściciel może usuwać użytkowników.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        username = request.data.get('username', '').strip()
+        if not username:
+            return Response({'error': 'Podaj nazwę użytkownika.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            target_user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            return Response({'error': f'Użytkownik "{username}" nie istnieje.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if not kalendarz.subskrybenci.filter(pk=target_user.pk).exists():
+            return Response({'error': f'Użytkownik "{username}" nie jest w tym planie.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        kalendarz.subskrybenci.remove(target_user)
+        return Response({'message': f'Użytkownik "{username}" został usunięty z planu.'}, status=status.HTTP_200_OK)
 
 
 class IsZajeciaOwnerOrReadOnly(permissions.BasePermission):
@@ -62,16 +121,16 @@ class ZajeciaViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         qs = Zajecia.objects.filter(Q(kalendarz__wlasciciel=user) | Q(kalendarz__subskrybenci=user)).distinct()
-        
+
         kalendarz_id = self.request.query_params.get("kalendarz")
         if kalendarz_id:
             qs = qs.filter(kalendarz_id=kalendarz_id)
-            
+
         q = self.request.query_params.get("q")
         if q:
-            qs = (qs.filter(nazwa__icontains=q) | 
-                  qs.filter(prowadzacy__icontains=q) | 
-                  qs.filter(sala__icontains=q) | 
+            qs = (qs.filter(nazwa__icontains=q) |
+                  qs.filter(prowadzacy__icontains=q) |
+                  qs.filter(sala__icontains=q) |
                   qs.filter(notatki__icontains=q)).distinct()
         return qs
 
@@ -96,7 +155,7 @@ class ZajeciaViewSet(viewsets.ModelViewSet):
 
         user = request.user
         zajecia = Zajecia.objects.filter(Q(kalendarz__wlasciciel=user) | Q(kalendarz__subskrybenci=user)).distinct()
-        
+
         kalendarz_id = request.query_params.get("kalendarz")
         if kalendarz_id:
             zajecia = zajecia.filter(kalendarz_id=kalendarz_id)

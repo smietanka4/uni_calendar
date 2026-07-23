@@ -22,7 +22,7 @@ export default function AllCoursesPage() {
     setLoading(true)
     try {
       const params = q ? `?q=${encodeURIComponent(q)}` : ''
-      const { data } = await client.get(`/zajecia/${params}`)
+      const { data } = await client.get(`/courses${params}`)
       setZajecia(data)
     } catch {
       setZajecia([])
@@ -41,7 +41,7 @@ export default function AllCoursesPage() {
   const handleDelete = async (id) => {
     setDeletingId(id)
     try {
-      await client.delete(`/zajecia/${id}/`)
+      await client.delete(`/courses/${id}`)
       setZajecia((prev) => prev.filter((z) => z.id !== id))
     } catch {
       /* ignore */

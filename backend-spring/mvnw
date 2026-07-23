@@ -1,0 +1,43 @@
+#!/bin/sh
+# Maven Wrapper script
+# https://maven.apache.org/wrapper/
+
+set -e
+
+MAVEN_PROJECTBASEDIR="${MAVEN_BASEDIR:-$(cd "$(dirname "$0")" && pwd)}"
+MAVEN_WRAPPER_PROPERTIES="$MAVEN_PROJECTBASEDIR/.mvn/wrapper/maven-wrapper.properties"
+MAVEN_WRAPPER_JAR="$MAVEN_PROJECTBASEDIR/.mvn/wrapper/maven-wrapper.jar"
+
+# Download maven-wrapper.jar if not present
+if [ ! -f "$MAVEN_WRAPPER_JAR" ]; then
+    WRAPPER_URL=$(grep 'wrapperUrl' "$MAVEN_WRAPPER_PROPERTIES" | cut -d'=' -f2-)
+    echo "Downloading Maven Wrapper from $WRAPPER_URL"
+    if command -v curl > /dev/null 2>&1; then
+        curl -sL -o "$MAVEN_WRAPPER_JAR" "$WRAPPER_URL"
+    elif command -v wget > /dev/null 2>&1; then
+        wget -q -O "$MAVEN_WRAPPER_JAR" "$WRAPPER_URL"
+    else
+        echo "Error: curl or wget is required to download Maven Wrapper"
+        exit 1
+    fi
+fi
+
+# Determine distribution URL
+DIST_URL=$(grep 'distributionUrl' "$MAVEN_WRAPPER_PROPERTIES" | cut -d'=' -f2-)
+MAVEN_HOME="$HOME/.m2/wrapper/dists/$(basename "$DIST_URL" .zip)"
+
+if [ ! -d "$MAVEN_HOME" ]; then
+    mkdir -p "$MAVEN_HOME"
+    echo "Downloading Maven from $DIST_URL"
+    ARCHIVE="$MAVEN_HOME/maven.zip"
+    if command -v curl > /dev/null 2>&1; then
+        curl -sL -o "$ARCHIVE" "$DIST_URL"
+    elif command -v wget > /dev/null 2>&1; then
+        wget -q -O "$ARCHIVE" "$DIST_URL"
+    fi
+    unzip -q -o "$ARCHIVE" -d "$MAVEN_HOME"
+    rm -f "$ARCHIVE"
+fi
+
+MVN_CMD=$(find "$MAVEN_HOME" -name mvn -type f | head -1)
+exec "$MVN_CMD" "$@"

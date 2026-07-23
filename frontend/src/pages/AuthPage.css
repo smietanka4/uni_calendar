@@ -1,6 +1,7 @@
 /* Terminal Auth Screen */
 .auth-page {
-  min-height: 100vh;
+  height: 100vh; /* Pełny ekran, kompatybilny z overflow:hidden na body */
+  overflow-y: auto; /* Auth scroll wewnętrznie jeśli potrzebne */
   display: flex;
   align-items: center;
   justify-content: center;

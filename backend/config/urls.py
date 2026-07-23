@@ -1,17 +1,16 @@
 from django.contrib import admin
 from django.urls import path, include
-from rest_framework_simplejwt.views import TokenRefreshView
-from zajecia.auth_views import RegisterView, LoginView
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 urlpatterns = [
-    # Django admin
+    # Django Admin
     path("django-admin/", admin.site.urls),
-    # Auth
-    path("api/auth/register/", RegisterView.as_view(), name="register"),
-    path("api/auth/login/", LoginView.as_view(), name="login"),
-    path("api/auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
-    # path("api/auth/password_reset/", PasswordResetRequestView.as_view(), name="password_reset"),
-    # path("api/auth/password_reset_confirm/", PasswordResetConfirmView.as_view(), name="password_reset_confirm"),
-    # Zajecia API
+
+    # ── OpenAPI Schema + Swagger UI ────────────────────────────────────
+    path("api/schema/",         SpectacularAPIView.as_view(),      name="schema"),
+    path("api/docs/",           SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
+    path("api/docs/redoc/",     SpectacularRedocView.as_view(url_name="schema"),   name="redoc"),
+
+    # ── Zajecia API (auth + REST resources) ───────────────────────────
     path("api/", include("zajecia.urls")),
 ]

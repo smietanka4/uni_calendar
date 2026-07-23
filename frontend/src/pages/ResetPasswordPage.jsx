@@ -22,11 +22,11 @@ export default function ResetPasswordPage() {
     
     setStatus({ loading: true, success: '', error: '' })
     try {
-      const res = await client.post('/auth/password_reset_confirm/', { 
+      const res = await client.post('/auth/password-reset-confirm', { 
         uid, 
         token, 
         password: form.password,
-        password_confirm: form.passwordConfirm 
+        passwordConfirm: form.passwordConfirm 
       })
       
       setStatus({ loading: false, success: res.data.message || 'Hasło zmienione pomyślnie!', error: '' })

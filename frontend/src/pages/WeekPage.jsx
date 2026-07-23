@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import client from '../api/client'
+import useStomp from '../hooks/useStomp'
+import Noticeboard from './Noticeboard'
 import './WeekPage.css'
 
 const DAYS = ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela']
@@ -39,7 +41,11 @@ export default function WeekPage() {
   const navigate = useNavigate()
   const [monday, setMonday] = useState(() => mondayOf(new Date()))
   const [zajecia, setZajecia] = useState([])
+  const [primaryCalendar, setPrimaryCalendar] = useState(null)
   const [loading, setLoading] = useState(true)
+
+  // STOMP WebSocket
+  const { messages: stompMessages } = useStomp(primaryCalendar?.id);
 
   // Opcje modala
   const [selectedEvent, setSelectedEvent] = useState(null)
@@ -49,8 +55,13 @@ export default function WeekPage() {
   const fetchWeek = useCallback(async (mon) => {
     setLoading(true)
     try {
-      const { data } = await client.get(`/zajecia/tydzien/?data=${toISO(mon)}`)
+      const { data } = await client.get(`/courses/week?data=${toISO(mon)}`)
       setZajecia(data)
+      
+      const calRes = await client.get('/calendars')
+      const myPlan = calRes.data.find(k => k.czy_wlasciciel)
+      if (myPlan) setPrimaryCalendar(myPlan)
+      
     } catch {
       setZajecia([])
     } finally {
@@ -60,6 +71,18 @@ export default function WeekPage() {
 
   useEffect(() => { fetchWeek(monday) }, [monday, fetchWeek])
 
+  useEffect(() => {
+    if (stompMessages && stompMessages.length > 0) {
+      const latestMsg = stompMessages[stompMessages.length - 1];
+      if (latestMsg.type === 'COURSE_CREATED' || latestMsg.type === 'COURSE_UPDATED') {
+        // Simple refresh to avoid complex date math for week views
+        fetchWeek(monday);
+      } else if (latestMsg.type === 'COURSE_DELETED') {
+        setZajecia(prev => prev.filter(z => z.id !== latestMsg.payload.id));
+      }
+    }
+  }, [stompMessages, monday, fetchWeek]);
+
   const prevWeek = () => setMonday((m) => addDays(m, -7))
   const nextWeek = () => setMonday((m) => addDays(m, 7))
   const thisWeek = () => setMonday(mondayOf(new Date()))
@@ -68,7 +91,7 @@ export default function WeekPage() {
     setDeleting(true)
     setDeleteError('')
     try {
-      await client.delete(`/zajecia/${id}/`)
+      await client.delete(`/courses/${id}`)
       setZajecia(prev => prev.filter(z => z.id !== id))
       setSelectedEvent(null)
     } catch (err) {
@@ -82,7 +105,7 @@ export default function WeekPage() {
   const daysOfWeek = Array.from({ length: 7 }, (_, i) => addDays(monday, i))
 
   return (
-    <div className="page" style={{ maxWidth: '1400px' }}>
+    <div className="page page-wide">
       {/* Modal / Popup Informacyjny */}
       {selectedEvent && (
         <div className="modal-overlay" onClick={() => setSelectedEvent(null)}>
@@ -153,8 +176,9 @@ export default function WeekPage() {
       {loading ? (
         <div className="spinner" />
       ) : (
-        <div className="cal-wrapper card">
-          <div className="cal-grid">
+        <div className="week-layout">
+          <div className="cal-wrapper card">
+            <div className="cal-grid">
             {/* Top-Left Corner */}
             <div className="cal-header-corner"></div>
 
@@ -247,6 +271,18 @@ export default function WeekPage() {
               })}
             </div>
           </div>
+        </div>
+        
+        {/* Prawa kolumna - Tablica Ogłoszeń */}
+        {primaryCalendar && (
+          <div className="noticeboard-wrapper" style={{ width: '350px', flexShrink: 0 }}>
+             <Noticeboard 
+                calendarId={primaryCalendar.id} 
+                canEdit={true} 
+                newStompMessages={stompMessages} 
+             />
+          </div>
+        )}
         </div>
       )}
     </div>

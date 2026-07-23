@@ -21,9 +21,39 @@ dist/
 dist-ssr/
 *.local
 
-# IDE
-.vscode/
+# Java / Spring Boot
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+*.class
+*.log
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Eclipse / STS IDE
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+# IntelliJ IDEA
 .idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# VS Code
+.vscode/
 *.swp
 *.swo
 *~

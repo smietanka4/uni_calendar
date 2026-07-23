@@ -32,7 +32,7 @@ export default function EditCoursePage() {
 
   useEffect(() => {
     // 2. Fetch course details
-    client.get(`/zajecia/${id}/`)
+    client.get(`/courses/${id}`)
       .then(res => {
         // Obetnij sekundy z godziny startu do formatu HH:MM jeśli trzeba
         const data = res.data;
@@ -62,7 +62,7 @@ export default function EditCoursePage() {
 
     setLoading(true)
     try {
-      await client.put(`/zajecia/${id}/`, form)
+      await client.put(`/courses/${id}`, form)
       setSuccess('Zajęcia zostały zaktualizowane!')
       setTimeout(() => navigate(-1), 800) // Wróć tam skąd przyszedł (albo do /wszystkie)
     } catch (err) {

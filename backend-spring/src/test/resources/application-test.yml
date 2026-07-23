@@ -1,0 +1,27 @@
+# Test profile – H2 in-memory zamiast PostgreSQL
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+  data:
+    redis:
+      url: redis://localhost:6379/0
+
+app:
+  jwt:
+    secret: test-secret-key-minimum-32-characters-long-for-hmac
+    access-expiration-ms: 3600000
+    refresh-expiration-ms: 604800000
+  cors:
+    allowed-origins: http://localhost
+  frontend-url: http://localhost:5173
+  superuser:
+    username: admin
+    email: admin@test.com
+    password: admin123

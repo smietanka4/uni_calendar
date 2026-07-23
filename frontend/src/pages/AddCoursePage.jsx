@@ -55,7 +55,7 @@ export default function AddCoursePage() {
 
     setLoading(true)
     try {
-      await client.post('/zajecia/', form)
+      await client.post('/courses', form)
       setSuccess('Zajęcia zostały dodane!')
       setForm(EMPTY)
       setTimeout(() => navigate('/'), 1200)

@@ -1,3 +1,5 @@
+import os
+from datetime import timedelta
 from decouple import config, Csv
 from pathlib import Path
 
@@ -20,6 +22,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "corsheaders",
+    "drf_spectacular",   # Swagger / OpenAPI
     # Local
     "zajecia",
 ]
@@ -55,6 +58,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
+# ── Baza Danych (PostgreSQL) ───────────────────────────────────────────────
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -66,6 +70,26 @@ DATABASES = {
     }
 }
 
+# ── Cache (Redis) ──────────────────────────────────────────────────────────
+REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": REDIS_URL,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "IGNORE_EXCEPTIONS": True,   # Fallback: nie crashuj gdy Redis niedostępny
+        },
+        "TIMEOUT": 300,  # 5 minut domyślny TTL
+    }
+}
+
+# Sesje w Redisie (szybkie, nie obciążają bazy)
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
+
+# ── Walidacja Haseł ────────────────────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -83,7 +107,7 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# ── Django REST Framework ──────────────────────────────────────────────
+# ── Django REST Framework ──────────────────────────────────────────────────
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
@@ -91,11 +115,20 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
+    # Throttling (rate limiting na poziomie Django, dodatkowa warstwa po Nginx)
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "100/hour",    # Niezalogowani: 100 żądań/godz
+        "user": "1000/hour",   # Zalogowani: 1000 żądań/godz
+    },
+    # Swagger / OpenAPI
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
-# ── JWT ───────────────────────────────────────────────────────────────
-from datetime import timedelta
-
+# ── JWT ────────────────────────────────────────────────────────────────────
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
@@ -104,7 +137,7 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
-# ── CORS ──────────────────────────────────────────────────────────────
+# ── CORS ───────────────────────────────────────────────────────────────────
 CORS_ALLOWED_ORIGINS = config(
     "CORS_ALLOWED_ORIGINS",
     default="http://localhost,http://localhost:5173,http://127.0.0.1",
@@ -112,18 +145,34 @@ CORS_ALLOWED_ORIGINS = config(
 )
 CORS_ALLOW_CREDENTIALS = True
 
-import os
+# ── Konfiguracja Swagger / OpenAPI ─────────────────────────────────────────
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Uni Calendar API",
+    "DESCRIPTION": (
+        "API uczelnianego kalendarza zajęć. Pozwala zarządzać planami tygodniowymi, "
+        "zajęciami, zapraszać użytkowników i resetować hasła."
+    ),
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "CONTACT": {"name": "Zespół Uni Calendar"},
+    "LICENSE": {"name": "MIT"},
+    "TAGS": [
+        {"name": "auth", "description": "Rejestracja, logowanie, reset hasła"},
+        {"name": "kalendarze", "description": "Zarządzanie planami i zaproszeniami"},
+        {"name": "zajecia", "description": "Zajęcia dydaktyczne"},
+    ],
+}
 
-# Konfiguracja wysyłki e-mail
-if os.getenv('EMAIL_HOST'):
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = os.getenv('EMAIL_HOST')
-    EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
-    EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
-    EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
-    EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-    DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
+# ── E-mail ─────────────────────────────────────────────────────────────────
+if os.getenv("EMAIL_HOST"):
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = os.getenv("EMAIL_HOST")
+    EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
+    EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True") == "True"
+    EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+    EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+    DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
 else:
-    # Konsolowy backend do devu/testów, treść maila wypisze się w konsole kontenera.
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-    DEFAULT_FROM_EMAIL = 'no-reply@localhost.com'
+    # Konsolowy backend do devu/testów – treść maila wypisze się w logach kontenera
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+    DEFAULT_FROM_EMAIL = "no-reply@localhost.com"

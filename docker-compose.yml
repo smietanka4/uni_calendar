@@ -1,4 +1,6 @@
 services:
+
+  # ── Baza Danych ────────────────────────────────────────────────────────
   db:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -8,26 +10,53 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend-net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 10
 
+  # ── Cache / Rate-Limit store ───────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    networks:
+      - backend-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── Spring Boot Backend ─────────────────────────────────────────────
   backend:
-    build: ./backend
+    build: ./backend-spring
     restart: unless-stopped
     env_file: .env
     environment:
       POSTGRES_HOST: db
+      REDIS_URL: redis://redis:6379/0
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend-net
 
+  # ── React Frontend (statyczne pliki przez nginx) ───────────────────────
   frontend:
     build: ./frontend
     restart: unless-stopped
+    networks:
+      - frontend-net
 
+  # ── Reverse Proxy (jedyny punkt wejścia z internetu) ──────────────────
   nginx:
     build: ./nginx
     restart: unless-stopped
@@ -36,6 +65,19 @@ services:
     depends_on:
       - backend
       - frontend
+    networks:
+      - frontend-net
+      - backend-net   # potrzebny żeby przekazywać /api/ do backendu
 
+# ── Sieci Docker ────────────────────────────────────────────────────────
+networks:
+  frontend-net:   # Nginx ↔ Frontend (publiczna)
+    driver: bridge
+  backend-net:    # Nginx ↔ Backend ↔ DB ↔ Redis (wewnętrzna – odizolowana)
+    driver: bridge
+    internal: false  # false, bo nginx musi sięgać do backendu; DB i Redis są dostępne tylko wewnątrz
+
+# ── Trwałe Wolumeny ─────────────────────────────────────────────────────
 volumes:
   postgres_data:
+  redis_data:

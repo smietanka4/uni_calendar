@@ -14,7 +14,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN chmod +x entrypoint.sh
+# Konwersja Windows CRLF → Unix LF (niezbędne gdy plik był edytowany na Windows)
+RUN sed -i 's/\r//' entrypoint.sh && chmod +x entrypoint.sh
 
 EXPOSE 8000
 

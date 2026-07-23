@@ -6,14 +6,25 @@ from .models import Zajecia, Kalendarz
 
 User = get_user_model()
 
+
+class SubskrybentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username']
+
+
 class KalendarzSerializer(serializers.ModelSerializer):
     czy_wlasciciel = serializers.SerializerMethodField()
     jest_subskrybentem = serializers.SerializerMethodField()
     wlasciciel_nazwa = serializers.CharField(source='wlasciciel.username', read_only=True)
-    
+    subskrybenci_lista = serializers.SerializerMethodField()
+
     class Meta:
         model = Kalendarz
-        fields = ['id', 'nazwa', 'wlasciciel', 'wlasciciel_nazwa', 'haslo', 'czy_wlasciciel', 'jest_subskrybentem']
+        fields = [
+            'id', 'nazwa', 'wlasciciel', 'wlasciciel_nazwa',
+            'haslo', 'czy_wlasciciel', 'jest_subskrybentem', 'subskrybenci_lista'
+        ]
         extra_kwargs = {
             'haslo': {'write_only': True, 'required': False},
             'wlasciciel': {'read_only': True}
@@ -24,12 +35,19 @@ class KalendarzSerializer(serializers.ModelSerializer):
         if request and request.user:
             return obj.wlasciciel == request.user
         return False
-        
+
     def get_jest_subskrybentem(self, obj):
         request = self.context.get('request')
         if request and request.user:
             return obj.subskrybenci.filter(id=request.user.id).exists()
         return False
+
+    def get_subskrybenci_lista(self, obj):
+        """Zwraca listę subskrybentów tylko dla właściciela."""
+        request = self.context.get('request')
+        if request and request.user and obj.wlasciciel == request.user:
+            return SubskrybentSerializer(obj.subskrybenci.all(), many=True).data
+        return []
 
 
 class ZajeciaSerializer(serializers.ModelSerializer):

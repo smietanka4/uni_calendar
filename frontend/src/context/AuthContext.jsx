@@ -14,7 +14,7 @@ export function AuthProvider({ children }) {
   })
 
   const login = useCallback(async (username, password) => {
-    const { data } = await client.post('/auth/login/', { username, password })
+    const { data } = await client.post('/auth/login', { username, password })
     localStorage.setItem('access', data.access)
     localStorage.setItem('refresh', data.refresh)
     localStorage.setItem('user', JSON.stringify(data.user))
@@ -23,8 +23,8 @@ export function AuthProvider({ children }) {
   }, [])
 
   const register = useCallback(async (username, email, password, password2) => {
-    const { data } = await client.post('/auth/register/', {
-      username, email, password, password_confirm: password2,
+    const { data } = await client.post('/auth/register', {
+      username, email, password, passwordConfirm: password2,
     })
     localStorage.setItem('access', data.access)
     localStorage.setItem('refresh', data.refresh)

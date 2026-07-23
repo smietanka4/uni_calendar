@@ -1,0 +1,86 @@
+# ══════════════════════════════════════════════════════════════════════
+# Uni Calendar – Spring Boot Configuration
+# ══════════════════════════════════════════════════════════════════════
+
+server:
+  port: 8000   # Taki sam port jak Django/Gunicorn – nginx nie wymaga zmian
+
+spring:
+  # ── DataSource (PostgreSQL) ──────────────────────────────────────────
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:db}:${POSTGRES_PORT:5432}/${POSTGRES_DB:uni_calendar}
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+
+  # ── JPA / Hibernate ──────────────────────────────────────────────────
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+    show-sql: false
+
+  # ── Redis Cache ──────────────────────────────────────────────────────
+  data:
+    redis:
+      url: ${REDIS_URL:redis://redis:6379/0}
+
+  # ── Email ────────────────────────────────────────────────────────────
+  mail:
+    host: ${EMAIL_HOST:}
+    port: ${EMAIL_PORT:587}
+    username: ${EMAIL_HOST_USER:}
+    password: ${EMAIL_HOST_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: ${EMAIL_USE_TLS:true}
+    default-from: ${DEFAULT_FROM_EMAIL:no-reply@localhost.com}
+
+# ── JWT ────────────────────────────────────────────────────────────────
+app:
+  jwt:
+    secret: ${JWT_SECRET:zmien-na-dlugi-losowy-ciag-znakow-minimum-64-znaki-to-jest-domyslny-klucz}
+    access-expiration-ms: ${JWT_ACCESS_EXPIRATION_MS:3600000}      # 60 minut
+    refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000}  # 7 dni
+
+  # ── CORS ─────────────────────────────────────────────────────────────
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost,http://localhost:5173,http://127.0.0.1}
+
+  # ── Frontend URL (do linków resetujących hasło) ──────────────────────
+  frontend-url: ${FRONTEND_URL:http://localhost:5173}
+
+  # ── Superuser (tworzony automatycznie przy starcie) ──────────────────
+  superuser:
+    username: ${DJANGO_SUPERUSER_USERNAME:admin}
+    email: ${DJANGO_SUPERUSER_EMAIL:admin@example.com}
+    password: ${DJANGO_SUPERUSER_PASSWORD:admin}
+
+# ── SpringDoc / OpenAPI ────────────────────────────────────────────────
+springdoc:
+  api-docs:
+    path: /api/schema
+  swagger-ui:
+    path: /api/docs
+    operations-sorter: method
+
+# ── Rate Limiting (app-level, uzupełnienie Nginx) ──────────────────────
+app.rate-limit:
+  anon-per-hour: 100
+  user-per-hour: 1000
+
+# ── Logging ────────────────────────────────────────────────────────────
+logging:
+  level:
+    com.unicalendar: INFO
+    org.hibernate.SQL: WARN

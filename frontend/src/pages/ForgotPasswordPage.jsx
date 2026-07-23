@@ -16,7 +16,7 @@ export default function ForgotPasswordPage() {
     
     setStatus({ loading: true, success: '', error: '' })
     try {
-      const { data } = await client.post('/auth/password_reset/', { email })
+      const { data } = await client.post('/auth/password-reset', { email })
       setStatus({ loading: false, success: data.message || 'Jeśli konto istnieje, e-mail został wysłany.', error: '' })
       setEmail('')
     } catch (err) {

@@ -1,155 +1,85 @@
-# Uni Calendar - Personalizowany Kalendarz
+# Uni Calendar - Uczelniany Kalendarz Współdzielony
 
-Pełna aplikacja webowa z backendem (Flask) i frontendem (React) do zarządzania personalizowanym kalendarzem wydarzeń.
+Nowoczesna aplikacja webowa typu SPA (Single Page Application) stworzona do zarządzania plikami zajęć z funkcją współdzielenia, komunikacji w czasie rzeczywistym i tablicą ogłoszeń. 
+
+Aplikacja oparta na zaawansowanej architekturze serwerowej **Spring Boot (Java 21)** oraz wysoce reaktywnym interfejsie w **React.js**. Całość infrastruktury uruchamiana jest z wykorzystaniem kontenerów **Docker**.
 
 ## Funkcjonalności
 
-- ✅ Rejestracja i logowanie użytkowników
-- ✅ Tworzenie, edycja i usuwanie wydarzeń
-- ✅ Pełna personalizacja wydarzeń:
-  - Data i godzina rozpoczęcia oraz zakończenia
-  - Kolor wydarzenia
-  - Opis wydarzenia
-  - Powtarzanie wydarzeń (codziennie, co tydzień, co miesiąc, co rok)
-  - Ustawienie interwału powtarzania (np. co 2 tygodnie)
-  - Data końca powtarzania lub liczba wystąpień
-- ✅ Widok kalendarza miesięcznego
-- ✅ Intuicyjny interfejs użytkownika
+- ✅ **Bezpieczna Autoryzacja:** Rejestracja, logowanie oraz resetowanie haseł oparte o krótkotrwałe tokeny wędrujące przez JWT (JSON Web Tokens) chroniące przed podsłuchiwaniem i kradzieżą dostępu.
+- ✅ **Zarządzanie Kalendarzami z Limitem:** Limit 5 kalendarzy per użytkownik. Ogranicza obciążenie bazy. 
+- ✅ **System Ról i Uprawnień (RBAC):**
+  - **Właściciel / Collaborator (Współtwórca):** Pełne prawa do tworzenia, edycji i usuwania lekcji i wiadomości.
+  - **Follower (Obserwator):** Widzi nałożone plany w trybie tylko do odczytu (READ-ONLY).
+- ✅ **Live Update / WebSockets:** Pełna integracja z protokołem STOMP w Spring Boot oraz własny hook `useStomp` na froncie. Kiedy jeden użytkownik edytuje kalendarz, wszystkie strony podłączonych użytkowników natychmiast odświeżają się bez ręcznego przeładowywania.
+- ✅ **Tablica Ogłoszeń (Noticeboard):** Dynamiczne okno przyklejone do kalendarza na komunikaty grupy (odwoływanie zajęć, zmiany sal). Działa na żywo w oparciu o sieć WebSockets.
+- ✅ **Rozwiązany Problem N+1 Query:** Zoptymalizowane encje i zapytania JPQL z `JOIN FETCH`, które skracają czas odpowiedzi bazy PostgreSQL do minimum.
+
+## Wymagania
+
+- [Docker](https://www.docker.com/) oraz Docker Compose
+- *Opcjonalnie (do pracy bez dockera)*: Java 21, Maven/MavenWrapper, Node.js v22+
+
+## Szybkie Uruchomienie (Zalecane)
+
+Uruchomienie kompletnego środowiska opartego na pięciu współpracujących serwisach (Baza PostgreSQL, Redis, Backend API, Frontend Node, Reverse Proxy Nginx).
+
+1. Upewnij się, że masz skopiowany plik środowiskowy i zmienione hasła (szczególnie JWT):
+```bash
+cp .env.example .env
+```
+2. Skompiluj i odpal maszyny w tle jednym poleceniem:
+```bash
+docker-compose up --build -d
+```
+3. Otwórz w przeglądarce: **http://localhost**
+   *Nginx automatycznie przekieruje zapytania /api i /ws do serwera Spring Boot i wyświetli front w Reakcie.*
 
 ## Struktura projektu
 
 ```
 uni_calendar/
-├── backend/
-│   ├── app.py                 # Główny plik aplikacji Flask
-│   ├── requirements.txt       # Zależności Pythona
-│   └── calendar.db           # Baza danych SQLite (tworzona automatycznie)
-├── frontend/
+├── docker-compose.yml     # Architektura maszyn i sieci
+├── .env.example           # Bezpieczne wstrzykiwanie haseł
+├── backend-spring/        # Backend w Spring Boot
+│   ├── src/main/java/com/unicalendar/
+│   │   ├── config/        # Konfiguracja (Bezpieczeństwo JWT, WebSockets, CORS)
+│   │   ├── controller/    # Warstwa wejściowa REST
+│   │   ├── model/         # Tabele (Course, Calendar, Notice, User, Members)
+│   │   ├── repository/    # Optymalizacja JPA
+│   │   └── service/       # Główna logika i uwierzytelnianie
+│   └── pom.xml            # Drzewo zależności Mavena
+├── frontend/              # Frontend React
 │   ├── src/
-│   │   ├── components/       # Komponenty React
-│   │   ├── contexts/         # Context API (AuthContext)
-│   │   ├── App.jsx
-│   │   └── main.jsx
+│   │   ├── api/           # Klient HTTP z Axios
+│   │   ├── hooks/         # Customowe rozwiązania (np. useStomp)
+│   │   ├── pages/         # Widoki 
+│   │   └── App.jsx        # Routing i warstwa autoryzacji
 │   ├── package.json
 │   └── vite.config.js
-└── README.md
-```
-
-## Instalacja i uruchomienie
-
-### Backend (Flask)
-
-1. Przejdź do katalogu backend:
-```bash
-cd backend
-```
-
-2. Zainstaluj zależności:
-```bash
-pip install -r requirements.txt
-```
-
-3. Uruchom serwer:
-```bash
-python app.py
-```
-
-Backend będzie dostępny pod adresem: http://localhost:5000
-
-### Frontend (React)
-
-1. Przejdź do katalogu frontend:
-```bash
-cd frontend
-```
-
-2. Zainstaluj zależności:
-```bash
-npm install
-```
-
-3. Uruchom serwer deweloperski:
-```bash
-npm run dev
-```
-
-Frontend będzie dostępny pod adresem: http://localhost:3000
-
-## API Endpoints
-
-### Autentykacja
-
-- `POST /api/register` - Rejestracja nowego użytkownika
-- `POST /api/login` - Logowanie użytkownika
-- `GET /api/user` - Pobranie informacji o zalogowanym użytkowniku (wymaga autoryzacji)
-
-### Wydarzenia
-
-- `GET /api/events?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD` - Pobranie wydarzeń (wymaga autoryzacji)
-- `POST /api/events` - Utworzenie nowego wydarzenia (wymaga autoryzacji)
-- `GET /api/events/<id>` - Pobranie konkretnego wydarzenia (wymaga autoryzacji)
-- `PUT /api/events/<id>` - Aktualizacja wydarzenia (wymaga autoryzacji)
-- `DELETE /api/events/<id>` - Usunięcie wydarzenia (wymaga autoryzacji)
-
-## Przykładowe użycie API
-
-### Rejestracja użytkownika
-
-```bash
-curl -X POST http://localhost:5000/api/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "jan",
-    "email": "jan@example.com",
-    "password": "haslo123"
-  }'
-```
-
-### Utworzenie wydarzenia
-
-```bash
-curl -X POST http://localhost:5000/api/events \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -d '{
-    "title": "Spotkanie",
-    "description": "Opis spotkania",
-    "start_time": "2024-01-15T10:00:00",
-    "end_time": "2024-01-15T11:00:00",
-    "recurrence_type": "weekly",
-    "recurrence_interval": 1,
-    "color": "#3788d8"
-  }'
+├── nginx/                 # Warstwa ochronna Nginx (Reverse Proxy)
+└── dokumentacja.md        # Kompletna, ogromna dokumentacja architektury
 ```
 
 ## Technologie
 
 ### Backend
-- Flask - framework webowy
-- Flask-SQLAlchemy - ORM do bazy danych
-- Flask-JWT-Extended - autoryzacja JWT
-- Flask-CORS - obsługa CORS
-- SQLite - baza danych
-- python-dateutil - obsługa powtarzania wydarzeń
+- **Java 21** / **Spring Boot 3.4.1**
+- **Spring Data JPA** & **Hibernate**
+- **Spring Security** (Bezstanowa autoryzacja z użyciem biblioteki `jjwt`)
+- **Spring WebSockets / STOMP**
+- Baza danych: **PostgreSQL 16**
 
 ### Frontend
-- React - biblioteka UI
-- React Router - routing
-- Axios - klient HTTP
-- date-fns - obsługa dat
-- Vite - narzędzie buildowania
+- **React.js 18**
+- **Vite 6** (Superszybkie narzędzie budujące)
+- **React Router 6**
+- Klient HTTP: **Axios** z interceptorami
+- Websockets: **@stomp/stompjs** + **sockjs-client**
 
-## Uwagi bezpieczeństwa
+### Architektura
+- Konteneryzacja: **Docker** i **Docker Compose**
+- Serwer w roli fasady bezpieczeństwa: **Nginx**
 
-⚠️ **WAŻNE**: To jest aplikacja deweloperska. Przed wdrożeniem produkcyjnym:
-
-1. Zmień `SECRET_KEY` i `JWT_SECRET_KEY` w `backend/app.py`
-2. Użyj właściwej bazy danych (PostgreSQL, MySQL) zamiast SQLite
-3. Zaimplementuj HTTPS
-4. Dodaj walidację po stronie serwera
-5. Zaimplementuj rate limiting
-6. Dodaj obsługę błędów i logowanie
-
-## Licencja
-
-MIT
+## Zgłaszanie problemów i Rozwój
+Aplikacja została poddana gruntownej modernizacji, gdzie stary kod pythona i sqllite'a został wyrzucony na rzecz skalowalnego Java Spring Boot API. Szczegółowe zestawienie architektoniczne i raport pokontrolny znajdziesz w pliku `dokumentacja.md`.

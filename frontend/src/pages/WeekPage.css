@@ -3,15 +3,48 @@
   margin-bottom: 1rem;
   flex-wrap: wrap;
   gap: 1rem;
+  flex-shrink: 0; /* Nie zmniejszaj headera – kalendarz zajmuje resztę */
 }
 .week-header h1 { font-family: var(--font-display); font-size: 2rem; color: var(--primary); }
 .week-header h1::before { content: '> '; color: var(--text-muted); }
 .mb-2 { margin-bottom: 1.5rem; }
 
-/* Wrapper for horizontal scroll */
+/* Wrapper scrolluje wewnątrz – zarówno X (wąskie ekrany) jak Y (cała siatka) */
 .cal-wrapper {
-  overflow-x: auto;
-  padding: 0; /* Remove default card padding */
+  flex: 1;           /* Zajmuje resztę wysokości strony */
+  min-height: 0;     /* Kluczowe dla flex-child żeby mógł się skurczyć */
+  overflow: auto;
+  padding: 0 !important; /* Nadpisz .card { padding: 1.5rem } */
+}
+/* Usuń narożny akcent .card::before – zakłócał przyleganie siatki do krawędzi */
+.cal-wrapper.card::before {
+  display: none;
+}
+
+/* ── Niestandardowy scrollbar (terminal style) ─────────────────── */
+.cal-wrapper::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.cal-wrapper::-webkit-scrollbar-track {
+  background: var(--surface-2);
+  border-left: 1px solid var(--border);
+}
+.cal-wrapper::-webkit-scrollbar-thumb {
+  background: var(--border-bright);
+  border: 1px solid var(--surface-2);
+}
+.cal-wrapper::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+  box-shadow: 0 0 4px var(--primary-glow);
+}
+.cal-wrapper::-webkit-scrollbar-corner {
+  background: var(--surface-2);
+}
+/* Firefox */
+.cal-wrapper {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-bright) var(--surface-2);
 }
 
 /* 8 columns: 1 time column (60px) + 7 days (min 120px each) */
@@ -22,15 +55,21 @@
   grid-template-rows: auto 1fr;
 }
 
-/* Corner top left */
+/* Corner top left – sticky żeby przy scrollu Y nagłówki zostały */
 .cal-header-corner {
+  position: sticky;
+  top: 0;
+  z-index: 20;
   border-right: 2px solid var(--border);
   border-bottom: 2px dashed var(--border);
   background: var(--surface-2);
 }
 
-/* Day Headers */
+/* Day Headers – sticky przy scrollu pionowym */
 .cal-header-day {
+  position: sticky;
+  top: 0;
+  z-index: 20;
   padding: 0.6rem 0.4rem;
   text-align: center;
   border-right: 2px solid var(--border);
@@ -247,4 +286,11 @@
   font-size: 0.9rem;
   color: var(--text);
   margin-top: 1rem;
+}
+
+.week-layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  height: 100%;
 }
