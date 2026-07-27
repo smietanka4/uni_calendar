@@ -4,14 +4,11 @@ import com.unicalendar.dto.auth.AuthResponse;
 import com.unicalendar.dto.auth.LoginRequest;
 import com.unicalendar.dto.auth.RegisterRequest;
 import com.unicalendar.exception.BadRequestException;
-import com.unicalendar.model.User;
 import com.unicalendar.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,9 +18,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @ActiveProfiles("test")
 @Transactional
 class AuthServiceTest {
-
-    @MockBean
-    private RedisConnectionFactory redisConnectionFactory; // Disable real Redis in tests
 
     @Autowired
     private AuthService authService;
