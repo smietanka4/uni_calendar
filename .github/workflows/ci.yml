@@ -6,12 +6,39 @@ on:
   pull_request:
     branches: [main, master]
 
+# ── Blokowanie PR jeśli testy nie przejdą ─────────────────────────────
+# Aby to działało, włącz w ustawieniach repozytorium:
+#   Settings → Branches → Branch protection rules → main
+#   ☑ Require status checks to pass before merging
+#   Dodaj: "python-tests", "backend-ci", "frontend-ci"
+
 jobs:
   # ──────────────────────────────────────────────────────────────────────
-  # JOB 1: Testy i walidacja backendu (Spring Boot)
+  # JOB 1: Testy jednostkowe Python (logika lokalna src/)
+  # ──────────────────────────────────────────────────────────────────────
+  python-tests:
+    name: 🐍 Python – Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pytest
+        run: pip install pytest
+
+      - name: Run unit tests
+        run: python -m pytest tests/unit/ -v --tb=short
+
+  # ──────────────────────────────────────────────────────────────────────
+  # JOB 2: Testy i walidacja backendu (Spring Boot)
   # ──────────────────────────────────────────────────────────────────────
   backend-ci:
-    name: Backend – Build & Tests
+    name: ☕ Backend – Build & Tests
     runs-on: ubuntu-latest
 
     services:
@@ -64,10 +91,10 @@ jobs:
         run: ./mvnw verify -B
 
   # ──────────────────────────────────────────────────────────────────────
-  # JOB 2: Build frontendu (Node.js / Vite)
+  # JOB 3: Build i testy frontendu (Node.js / Vite / Vitest)
   # ──────────────────────────────────────────────────────────────────────
   frontend-ci:
-    name: Frontend – Build
+    name: ⚛️ Frontend – Build & Tests
     runs-on: ubuntu-latest
 
     defaults:
@@ -84,19 +111,22 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Zainstaluj zależności npm
+      - name: Install dependencies
         run: npm ci
 
-      - name: Zbuduj produkcyjny bundle (Vite)
+      - name: Run tests
+        run: npm test -- --run
+
+      - name: Build production bundle
         run: npm run build
 
   # ──────────────────────────────────────────────────────────────────────
-  # JOB 3: Build obrazów Docker (tylko po merge do main)
+  # JOB 4: Build obrazów Docker (tylko po merge do main)
   # ──────────────────────────────────────────────────────────────────────
   docker-build:
-    name: Docker – Build Images
+    name: 🐳 Docker – Build Images
     runs-on: ubuntu-latest
-    needs: [backend-ci, frontend-ci]
+    needs: [python-tests, backend-ci, frontend-ci]
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
 
     steps:
@@ -105,16 +135,16 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Zbuduj obraz backendu
+      - name: Build backend image
         uses: docker/build-push-action@v5
         with:
           context: ./backend-spring
-          push: false   # Zmień na true i skonfiguruj registry dla CD
+          push: false
           tags: uni-calendar/backend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Zbuduj obraz frontendu
+      - name: Build frontend image
         uses: docker/build-push-action@v5
         with:
           context: ./frontend

@@ -1,4 +1,4 @@
-# Python
+# Python (lokalne skrypty src/)
 __pycache__/
 *.py[cod]
 *$py.class
@@ -7,9 +7,7 @@ __pycache__/
 env/
 venv/
 ENV/
-*.db
-*.sqlite
-*.sqlite3
+.pytest_cache/
 
 # Node
 node_modules/

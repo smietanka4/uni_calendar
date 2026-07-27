@@ -41,6 +41,7 @@ docker-compose up --build -d
 uni_calendar/
 ├── docker-compose.yml     # Architektura maszyn i sieci
 ├── .env.example           # Bezpieczne wstrzykiwanie haseł
+├── .github/workflows/     # CI/CD pipeline (GitHub Actions)
 ├── backend-spring/        # Backend w Spring Boot
 │   ├── src/main/java/com/unicalendar/
 │   │   ├── config/        # Konfiguracja (Bezpieczeństwo JWT, WebSockets, CORS)
@@ -48,6 +49,7 @@ uni_calendar/
 │   │   ├── model/         # Tabele (Course, Calendar, Notice, User, Members)
 │   │   ├── repository/    # Optymalizacja JPA
 │   │   └── service/       # Główna logika i uwierzytelnianie
+│   ├── src/test/           # Testy jednostkowe Spring Boot (JUnit 5)
 │   └── pom.xml            # Drzewo zależności Mavena
 ├── frontend/              # Frontend React
 │   ├── src/
@@ -57,8 +59,10 @@ uni_calendar/
 │   │   └── App.jsx        # Routing i warstwa autoryzacji
 │   ├── package.json
 │   └── vite.config.js
+├── src/                   # Lokalna logika Python (Event, Calendar, Storage)
+├── tests/unit/            # Testy jednostkowe Python (pytest)
 ├── nginx/                 # Warstwa ochronna Nginx (Reverse Proxy)
-└── dokumentacja.md        # Kompletna, ogromna dokumentacja architektury
+└── dokumentacja.md        # Kompletna dokumentacja architektury
 ```
 
 ## Technologie
@@ -71,15 +75,53 @@ uni_calendar/
 - Baza danych: **PostgreSQL 16**
 
 ### Frontend
-- **React.js 18**
+- **React.js 19**
 - **Vite 6** (Superszybkie narzędzie budujące)
-- **React Router 6**
+- **React Router 7**
 - Klient HTTP: **Axios** z interceptorami
 - Websockets: **@stomp/stompjs** + **sockjs-client**
+
+### Testy
+- **Python:** pytest (logika lokalna `src/`)
+- **Spring Boot:** JUnit 5 + Mockito + H2 in-memory
+- **Frontend:** Vitest + React Testing Library
 
 ### Architektura
 - Konteneryzacja: **Docker** i **Docker Compose**
 - Serwer w roli fasady bezpieczeństwa: **Nginx**
+- CI/CD: **GitHub Actions** (blokuje merge przy failujących testach)
+
+## Uruchamianie testów
+
+### Python
+```bash
+pip install pytest
+python -m pytest tests/unit/ -v
+```
+
+### Spring Boot
+```bash
+cd backend-spring
+./mvnw test
+```
+
+### Frontend
+```bash
+cd frontend
+npm install
+npm test
+```
+
+## CI/CD
+
+Pipeline GitHub Actions automatycznie uruchamia:
+1. **🐍 Python Unit Tests** – testy logiki lokalnej (Event, Calendar, Storage)
+2. **☕ Spring Boot Build & Tests** – kompilacja + testy backendu z PostgreSQL i Redis
+3. **⚛️ Frontend Build & Tests** – testy + build Vite
+4. **🐳 Docker Build** – budowanie obrazów (tylko na `main`)
+
+> **Ważne:** Aby blokować merge przy failujących testach, włącz w ustawieniach repozytorium:
+> Settings → Branches → Branch protection rules → Require status checks to pass before merging.
 
 ## Zgłaszanie problemów i Rozwój
-Aplikacja została poddana gruntownej modernizacji, gdzie stary kod pythona i sqllite'a został wyrzucony na rzecz skalowalnego Java Spring Boot API. Szczegółowe zestawienie architektoniczne i raport pokontrolny znajdziesz w pliku `dokumentacja.md`.
+Szczegółowe zestawienie architektoniczne i raport pokontrolny znajdziesz w pliku `dokumentacja.md`.
