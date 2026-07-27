@@ -32,6 +32,8 @@ jobs:
         run: pip install pytest
 
       - name: Run unit tests
+        env:
+          PYTHONPATH: src
         run: python -m pytest tests/unit/ -v --tb=short
 
   # ──────────────────────────────────────────────────────────────────────
@@ -80,6 +82,9 @@ jobs:
           java-version: "21"
           cache: maven
 
+      - name: Make mvnw executable
+        run: chmod +x ./mvnw
+
       - name: Build & Test (Maven)
         env:
           POSTGRES_DB: uni_calendar_test
@@ -88,7 +93,7 @@ jobs:
           POSTGRES_HOST: localhost
           REDIS_URL: redis://localhost:6379/0
           JWT_SECRET: ci-test-secret-key-minimum-64-characters-for-hmac-sha256-signing
-        run: ./mvnw verify -B
+        run: ./mvnw test -B
 
   # ──────────────────────────────────────────────────────────────────────
   # JOB 3: Build i testy frontendu (Node.js / Vite / Vitest)
