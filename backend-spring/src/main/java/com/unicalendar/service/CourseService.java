@@ -30,6 +30,8 @@ public class CourseService {
     private final CourseRepository courseRepository;
     private final CalendarRepository calendarRepository;
     private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
+    private final ActivityEventService activityEventService;
+    private final com.unicalendar.repository.TemplateSubscriptionRepository templateSubscriptionRepository;
 
     /**
      * Lista zajęć użytkownika (z filtrami).
@@ -101,11 +103,14 @@ public class CourseService {
 
         course = courseRepository.save(course);
         CourseDto dto = toDto(course, user);
-        
         // Notify via WebSocket
         messagingTemplate.convertAndSend("/topic/calendar/" + calendar.getId(), 
                 java.util.Map.of("type", "COURSE_CREATED", "payload", dto));
+
+        activityEventService.logEvent(user, "CREATED", "COURSE", String.valueOf(course.getId()), calendar, 
+                java.util.Map.of("name", course.getName(), "type", course.getType().name()));
                 
+        propagateCourseCreate(course);
         return dto;
     }
 
@@ -135,10 +140,13 @@ public class CourseService {
 
         course = courseRepository.save(course);
         CourseDto dto = toDto(course, user);
-        
         messagingTemplate.convertAndSend("/topic/calendar/" + course.getCalendar().getId(), 
                 java.util.Map.of("type", "COURSE_UPDATED", "payload", dto));
+
+        activityEventService.logEvent(user, "UPDATED", "COURSE", String.valueOf(course.getId()), course.getCalendar(), 
+                java.util.Map.of("name", course.getName(), "type", course.getType().name()));
                 
+        propagateCourseUpdate(course);
         return dto;
     }
 
@@ -147,13 +155,53 @@ public class CourseService {
      */
     @Transactional
     public void deleteCourse(Long id, User user) {
-        Course course = findCourseOrThrow(id);
+        Course course = courseRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Nie znaleziono zajęć"));
+        
         checkCanModify(course, user);
         UUID calendarId = course.getCalendar().getId();
         courseRepository.delete(course);
-        
         messagingTemplate.convertAndSend("/topic/calendar/" + calendarId, 
                 java.util.Map.of("type", "COURSE_DELETED", "payload", java.util.Map.of("id", id)));
+
+        activityEventService.logEvent(user, "DELETED", "COURSE", String.valueOf(id), course.getCalendar(), 
+                java.util.Map.of("name", course.getName()));
+        
+        propagateCourseDelete(id, calendarId);
+    }
+
+    @Transactional
+    public CourseDto forkCourse(Long courseId, User user) {
+        Course original = courseRepository.findById(courseId)
+                .orElseThrow(() -> new IllegalArgumentException("Nie znaleziono zajęć"));
+        
+        Calendar myCalendar = calendarRepository.findFirstByOwner(user)
+                .orElseThrow(() -> new IllegalStateException("Nie posiadasz własnego kalendarza."));
+
+        Course copied = Course.builder()
+                .calendar(myCalendar)
+                .name(original.getName())
+                .type(original.getType())
+                .dayOfWeek(original.getDayOfWeek())
+                .startTime(original.getStartTime())
+                .durationMinutes(original.getDurationMinutes())
+                .dateFrom(original.getDateFrom())
+                .dateTo(original.getDateTo())
+                .room(original.getRoom())
+                .instructor(original.getInstructor())
+                .notes(original.getNotes() + "\n[Skopiowane z " + original.getCalendar().getName() + "]")
+                .build();
+        
+        copied = courseRepository.save(copied);
+        CourseDto dto = toDto(copied, user);
+
+        messagingTemplate.convertAndSend("/topic/calendar/" + myCalendar.getId(), 
+                java.util.Map.of("type", "COURSE_CREATED", "payload", dto));
+
+        activityEventService.logEvent(user, "FORKED", "COURSE", String.valueOf(copied.getId()), myCalendar, 
+                java.util.Map.of("name", copied.getName(), "original_calendar", original.getCalendar().getName()));
+
+        return dto;
     }
 
     /**
@@ -246,6 +294,103 @@ public class CourseService {
                 .instructor(course.getInstructor())
                 .notes(course.getNotes())
                 .isOwner(isOwner || isCollaborator) // Frontend treats isOwner as "can edit"
+                .sourceCourseId(course.getSourceCourseId())
                 .build();
+    }
+
+    /**
+     * Konwersja encji na DTO dla widoku publicznego (brak uprawnień edycji).
+     */
+    public CourseDto toDtoPublic(Course course) {
+        return CourseDto.builder()
+                .id(course.getId())
+                .calendarId(course.getCalendar().getId())
+                .calendarName(course.getCalendar().getName())
+                .name(course.getName())
+                .type(course.getType())
+                .typeDisplay(course.getType().getDisplayName())
+                .dayOfWeek(course.getDayOfWeek())
+                .startTime(course.getStartTime())
+                .endTime(course.getEndTime().toString().substring(0, 5))  // HH:MM
+                .durationMinutes(course.getDurationMinutes())
+                .dateFrom(course.getDateFrom())
+                .dateTo(course.getDateTo())
+                .room(course.getRoom())
+                .instructor(course.getInstructor())
+                .notes(course.getNotes())
+                .isOwner(false)
+                .sourceCourseId(course.getSourceCourseId())
+                .build();
+    }
+
+    private void propagateCourseCreate(Course course) {
+        List<com.unicalendar.model.TemplateSubscription> subs = templateSubscriptionRepository.findByTemplateId(course.getCalendar().getId());
+        for (var sub : subs) {
+            if (!sub.getAutoSync()) continue;
+            Course newCourse = Course.builder()
+                    .calendar(sub.getTargetCalendar())
+                    .name(course.getName())
+                    .type(course.getType())
+                    .dayOfWeek(course.getDayOfWeek())
+                    .startTime(course.getStartTime())
+                    .durationMinutes(course.getDurationMinutes())
+                    .dateFrom(course.getDateFrom())
+                    .dateTo(course.getDateTo())
+                    .room(course.getRoom())
+                    .instructor(course.getInstructor())
+                    .notes(course.getNotes())
+                    .sourceCourseId(course.getId())
+                    .build();
+            newCourse = courseRepository.save(newCourse);
+            
+            CourseDto dto = toDto(newCourse, sub.getSubscriber());
+            messagingTemplate.convertAndSend("/topic/calendar/" + sub.getTargetCalendar().getId(), 
+                    java.util.Map.of("type", "COURSE_CREATED", "payload", dto));
+            messagingTemplate.convertAndSend("/topic/user/" + sub.getSubscriber().getId(), 
+                    java.util.Map.of("type", "TEMPLATE_UPDATED", "payload", "Harmonogram " + course.getCalendar().getName() + " został zaktualizowany."));
+        }
+    }
+
+    private void propagateCourseUpdate(Course course) {
+        List<com.unicalendar.model.TemplateSubscription> subs = templateSubscriptionRepository.findByTemplateId(course.getCalendar().getId());
+        for (var sub : subs) {
+            if (!sub.getAutoSync()) continue;
+            List<Course> targets = courseRepository.findBySourceCourseIdAndCalendarId(course.getId(), sub.getTargetCalendar().getId());
+            for (Course target : targets) {
+                target.setName(course.getName());
+                target.setType(course.getType());
+                target.setDayOfWeek(course.getDayOfWeek());
+                target.setStartTime(course.getStartTime());
+                target.setDurationMinutes(course.getDurationMinutes());
+                target.setDateFrom(course.getDateFrom());
+                target.setDateTo(course.getDateTo());
+                target.setRoom(course.getRoom());
+                target.setInstructor(course.getInstructor());
+                target.setNotes(course.getNotes());
+                courseRepository.save(target);
+
+                CourseDto dto = toDto(target, sub.getSubscriber());
+                messagingTemplate.convertAndSend("/topic/calendar/" + sub.getTargetCalendar().getId(), 
+                        java.util.Map.of("type", "COURSE_UPDATED", "payload", dto));
+                messagingTemplate.convertAndSend("/topic/user/" + sub.getSubscriber().getId(), 
+                        java.util.Map.of("type", "TEMPLATE_UPDATED", "payload", "Harmonogram " + course.getCalendar().getName() + " został zaktualizowany."));
+            }
+        }
+    }
+
+    private void propagateCourseDelete(Long courseId, UUID calendarId) {
+        List<com.unicalendar.model.TemplateSubscription> subs = templateSubscriptionRepository.findByTemplateId(calendarId);
+        for (var sub : subs) {
+            if (!sub.getAutoSync()) continue;
+            List<Course> targets = courseRepository.findBySourceCourseIdAndCalendarId(courseId, sub.getTargetCalendar().getId());
+            for (Course target : targets) {
+                Long targetId = target.getId();
+                courseRepository.delete(target);
+                messagingTemplate.convertAndSend("/topic/calendar/" + sub.getTargetCalendar().getId(), 
+                        java.util.Map.of("type", "COURSE_DELETED", "payload", java.util.Map.of("id", targetId)));
+                messagingTemplate.convertAndSend("/topic/user/" + sub.getSubscriber().getId(), 
+                        java.util.Map.of("type", "TEMPLATE_UPDATED", "payload", "Harmonogram z którego korzystasz został zaktualizowany."));
+            }
+        }
     }
 }

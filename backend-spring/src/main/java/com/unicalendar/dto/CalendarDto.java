@@ -1,6 +1,7 @@
 package com.unicalendar.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.unicalendar.model.CalendarType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -21,6 +22,9 @@ public class CalendarDto {
     @JsonProperty("nazwa")
     private String name;
 
+    @JsonProperty("opis")
+    private String description;
+
     @JsonProperty("wlasciciel")
     private Long ownerId;
 
@@ -36,11 +40,30 @@ public class CalendarDto {
     @JsonProperty("subskrybenci_lista")
     private List<SubscriberDto> subscribers;
 
+    /** Kolor warstwy (hex) – z preferencji lub domyślny z kalendarza */
+    @Builder.Default
+    @JsonProperty("kolor")
+    private String color = "#3b82f6";
+
+    /** Czy warstwa jest włączona w widoku (z preferencji użytkownika) */
+    @Builder.Default
+    @JsonProperty("widoczna")
+    private boolean visible = true;
+
+    /** Czy kalendarz jest publiczny */
+    @JsonProperty("publiczny")
+    private boolean isPublic;
+
+    /** Typ: PERSONAL, SPACE, TEMPLATE */
+    @JsonProperty("typ")
+    private CalendarType calendarType;
+
     @Data
     @Builder
     @AllArgsConstructor
     public static class SubscriberDto {
         private Long id;
         private String username;
+        private String role; // "COLLABORATOR" lub "FOLLOWER"
     }
 }

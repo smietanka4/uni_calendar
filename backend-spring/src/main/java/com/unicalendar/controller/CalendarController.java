@@ -99,12 +99,22 @@ public class CalendarController {
     }
 
     @PostMapping("/{id}/invite")
-    @Operation(summary = "Zaproś użytkownika po nazwie")
+    @Operation(summary = "Zaproś użytkownika po nazwie (z rolą: COLLABORATOR lub FOLLOWER)")
     public ResponseEntity<Map<String, String>> invite(
             @PathVariable UUID id,
             @Valid @RequestBody InviteKickRequest request,
             @AuthenticationPrincipal User user) {
-        String message = calendarService.inviteUser(id, request.getUsername(), user);
+        String message = calendarService.inviteUser(id, request.getUsername(), request.getRole(), user);
+        return ResponseEntity.ok(Map.of("message", message));
+    }
+
+    @PostMapping("/{id}/change-role")
+    @Operation(summary = "Zmień rolę użytkownika w planie (COLLABORATOR / FOLLOWER)")
+    public ResponseEntity<Map<String, String>> changeRole(
+            @PathVariable UUID id,
+            @Valid @RequestBody InviteKickRequest request,
+            @AuthenticationPrincipal User user) {
+        String message = calendarService.changeRole(id, request.getUsername(), request.getRole(), user);
         return ResponseEntity.ok(Map.of("message", message));
     }
 
@@ -116,5 +126,14 @@ public class CalendarController {
             @AuthenticationPrincipal User user) {
         String message = calendarService.kickUser(id, request.getUsername(), user);
         return ResponseEntity.ok(Map.of("message", message));
+    }
+
+    @PostMapping("/{id}/fork")
+    @Operation(summary = "Sklonuj kalendarz (szablon) do swoich planów")
+    public ResponseEntity<CalendarDto> fork(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal User user) {
+        CalendarDto dto = calendarService.forkCalendar(id, user);
+        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 }

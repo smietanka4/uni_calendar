@@ -40,7 +40,7 @@ public class SecurityConfig {
             )
             .authorizeHttpRequests(auth -> auth
                 // Endpointy publiczne (auth)
-                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/auth/**", "/api/public/**").permitAll()
                 // Swagger / OpenAPI
                 .requestMatchers("/api/schema/**", "/api/docs/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 // Health check
