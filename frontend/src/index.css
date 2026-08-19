@@ -124,7 +124,7 @@ p { color: var(--text); font-size: 0.95rem; }
 
 /* Szeroki wariant dla siatki kalendarza (WeekPage) */
 .page.page-wide {
-  max-width: 1400px;
+  max-width: 1800px;
   overflow: hidden;      /* Brak zewnętrznego scrolla */
   display: flex;
   flex-direction: column;

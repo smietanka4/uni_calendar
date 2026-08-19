@@ -5,6 +5,8 @@ import SockJS from 'sockjs-client/dist/sockjs';
 const useStomp = (calendarId) => {
     const [messages, setMessages] = useState([]);
     const clientRef = useRef(null);
+    const storedUser = localStorage.getItem('user');
+    const user = storedUser ? JSON.parse(storedUser) : null;
 
     useEffect(() => {
         if (!calendarId) return;
@@ -21,10 +23,20 @@ const useStomp = (calendarId) => {
             reconnectDelay: 5000,
             onConnect: () => {
                 console.log('Connected to WebSockets');
-                client.subscribe(`/topic/calendar/${calendarId}`, (message) => {
-                    const parsed = JSON.parse(message.body);
-                    setMessages((prev) => [...prev, parsed]);
-                });
+                if (calendarId) {
+                    client.subscribe(`/topic/calendar/${calendarId}`, (message) => {
+                        const parsed = JSON.parse(message.body);
+                        setMessages((prev) => [...prev, parsed]);
+                    });
+                }
+                if (user?.id) {
+                    client.subscribe(`/topic/user/${user.id}`, (message) => {
+                        const parsed = JSON.parse(message.body);
+                        // Instead of pushing to general messages which are used for grid updates,
+                        // we will just fire a custom event or push it with a specific type.
+                        setMessages((prev) => [...prev, parsed]);
+                    });
+                }
             },
             onStompError: (frame) => {
                 console.error('Broker reported error: ' + frame.headers['message']);

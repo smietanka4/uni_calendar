@@ -75,11 +75,14 @@ public class CourseController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Usuń zajęcia")
-    public ResponseEntity<Void> delete(
-            @PathVariable Long id,
-            @AuthenticationPrincipal User user) {
+    public ResponseEntity<Void> delete(@PathVariable Long id, @AuthenticationPrincipal User user) {
         courseService.deleteCourse(id, user);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/fork")
+    public CourseDto forkCourse(@PathVariable Long id, @AuthenticationPrincipal User user) {
+        return courseService.forkCourse(id, user);
     }
 
     @GetMapping("/week")

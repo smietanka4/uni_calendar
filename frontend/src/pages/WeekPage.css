@@ -11,9 +11,11 @@
 
 /* Wrapper scrolluje wewnątrz – zarówno X (wąskie ekrany) jak Y (cała siatka) */
 .cal-wrapper {
-  flex: 1;           /* Zajmuje resztę wysokości strony */
-  min-height: 0;     /* Kluczowe dla flex-child żeby mógł się skurczyć */
-  overflow: auto;
+  flex: 1 1 0;       /* Zajmuje resztę dostępnej szerokości */
+  min-height: 0;     /* Kluczowe dla flex-child żeby mógł się skurczyć pionowo */
+  min-width: 0;      /* Kluczowe żeby mógł się skurczyć poziomo poniżej 900px i wymusić scroll */
+  overflow: auto;    /* Scroll w obu osiach */
+  max-height: calc(100vh - 200px); /* Ograniczenie wysokości z uwzględnieniem dolnego marginesu */
   padding: 0 !important; /* Nadpisz .card { padding: 1.5rem } */
 }
 /* Usuń narożny akcent .card::before – zakłócał przyleganie siatki do krawędzi */
@@ -47,11 +49,11 @@
   scrollbar-color: var(--border-bright) var(--surface-2);
 }
 
-/* 8 columns: 1 time column (60px) + 7 days (min 120px each) */
+/* 8 columns: 1 time column (75px) + 7 days (min 120px each) */
 .cal-grid {
   min-width: 900px; /* Force scroll on small screens */
   display: grid;
-  grid-template-columns: 60px repeat(7, 1fr);
+  grid-template-columns: 75px repeat(7, 1fr);
   grid-template-rows: auto 1fr;
 }
 
@@ -101,14 +103,14 @@
 .cal-body {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 60px repeat(7, 1fr);
+  grid-template-columns: 75px repeat(7, 1fr);
   position: relative;
 }
 
 /* Background lines wrapper */
 .cal-bg-lines {
   position: absolute;
-  top: 0; left: 60px; right: 0; bottom: 0;
+  top: 0; left: 75px; right: 0; bottom: 0;
   pointer-events: none;
   z-index: 0;
 }
@@ -138,8 +140,8 @@
 }
 .cal-time-label {
   position: absolute;
-  right: 0.4rem;
-  transform: translateY(-50%);
+  left: 50%;
+  transform: translate(-50%, -50%);
   font-family: var(--font-body);
   font-size: 0.8rem;
   color: var(--text-muted);
@@ -290,7 +292,27 @@
 
 .week-layout {
   display: flex;
-  gap: 20px;
+  gap: 1rem;
   align-items: flex-start;
-  height: 100%;
+  /* Bez flex-wrap – tablica ogłoszeń musi być zawsze obok, nie pod */
+  flex-wrap: nowrap;
+  /* Wysokość opiera się o viewport, żeby cal-wrapper miał ograniczenie do scrollowania */
+  overflow: visible;
+  margin-bottom: 2rem;
+}
+
+/* Panel warstw – stała szerokość, nie rośnie */
+.layers-panel {
+  flex-shrink: 0;
+  width: 200px;
+  overflow-y: auto;
+  max-height: calc(100vh - 200px);
+}
+
+/* Tablica ogłoszeń – stała szerokość, własny scroll, nie najeżdża na kalendarz */
+.noticeboard-wrapper {
+  flex-shrink: 0;
+  width: 320px;
+  overflow-y: auto;
+  max-height: calc(100vh - 200px);
 }

@@ -14,10 +14,11 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final UserRepository userRepository;
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return userRepository.findByUsername(username)
+    public UserDetails loadUserByUsername(String usernameOrEmail) throws UsernameNotFoundException {
+        return userRepository.findByUsername(usernameOrEmail)
+                .or(() -> userRepository.findByEmailIgnoreCase(usernameOrEmail))
                 .orElseThrow(() -> new UsernameNotFoundException(
-                        "Użytkownik \"" + username + "\" nie istnieje."
+                        "Użytkownik \"" + usernameOrEmail + "\" nie istnieje."
                 ));
     }
 }
