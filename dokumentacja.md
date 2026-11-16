@@ -1,181 +1,159 @@
-# Dokumentacja Projektu – Uni Calendar
+# Dokumentacja Projektu - Uni Calendar
 
-> Uczelniany Kalendarz Zajęć – aplikacja webowa do zarządzania tygodniowymi planami zajęć z funkcją udostępniania planów między użytkownikami, rozbudowana o komunikację w czasie rzeczywistym i system ról.
+> Uczelniany Kalendarz Zajec - aplikacja webowa do zarzadzania tygodniowymi planami zajec z funkcja udostepniania rozkladow miedzy uzytkownikami, komunikacja w czasie rzeczywistym i kontrola dostepu oparta na rolach.
 
 ---
 
-## Spis Treści
+## Spis Tresci
 
 1. [Architektura i Infrastruktura](#1-architektura-i-infrastruktura)
 2. [Warstwa Danych i Zoptymalizowane Zapytania](#2-warstwa-danych-i-zoptymalizowane-zapytania)
-3. [Bezpieczeństwo i Kontrola Dostępu](#3-bezpieczeństwo-i-kontrola-dostępu)
+3. [Bezpieczenstwo i Kontrola Dostepu](#3-bezpieczenstwo-i-kontrola-dostepu)
 4. [Backend (Spring Boot) i WebSockets](#4-backend-spring-boot-i-websockets)
-5. [Frontend (React) i Doświadczenie Użytkownika](#5-frontend-react-i-doświadczenie-użytkownika)
-6. [DevOps, Monitoring i Utrzymanie](#6-devops-monitoring-i-utrzymanie)
+5. [Frontend (React) i Architektura Interfejsu](#5-frontend-react-i-architektura-interfejsu)
+6. [Konfiguracja Domeny i Utrzymanie](#6-konfiguracja-domeny-i-utrzymanie)
 7. [Uruchomienie Projektu](#7-uruchomienie-projektu)
 
 ---
 
 ## 1. Architektura i Infrastruktura
 
-### ✅ Konteneryzacja (Docker)
+### Konteneryzacja (Docker)
 
-Cała aplikacja działa w izolowanych kontenerach Docker. Każda warstwa ma własny `Dockerfile`:
+Aplikacja dziala w izolowanych kontenerach Docker:
 
 | Kontener | Obraz bazowy | Rola |
 |---|---|---|
 | `db` | `postgres:16-alpine` | Baza danych PostgreSQL |
-| `redis` | `redis:7-alpine` | Cache + store rate limitingu |
-| `backend` | `eclipse-temurin:21-jdk-alpine` | Spring Boot 3.x REST API |
-| `frontend` | `node:22-alpine` → `nginx:1.27-alpine` | React SPA (build + serwowanie) |
-| `nginx` | `nginx:1.27-alpine` | Reverse proxy, rate limiting, routing WebSocketów |
+| `redis` | `redis:7-alpine` | Cache oraz magazyn rate limitingu |
+| `backend` | `eclipse-temurin:21-jdk-alpine` | Spring Boot 3.4 REST API + WebSockets |
+| `frontend` | `node:22-alpine` -> `nginx:1.27-alpine` | React SPA (build produkcyjny + serwowanie statyczne) |
+| `nginx` | `nginx:1.27-alpine` | Reverse proxy, rate limiting, routing WebSocketow i obsluga domeny |
 
-Uruchomienie całego stosu jedną komendą:
+Uruchomienie calego stosu:
 ```bash
 docker-compose up --build -d
 ```
 
-### ✅ Wewnętrzne Sieci Docker (Izolacja)
+### Wewnetrzne Sieci Docker (Izolacja)
 
-- `db` i `redis` są dostępne **wyłącznie** z sieci wewnętrznej `backend-net` – nikt z zewnątrz nie może się bezpośrednio do nich połączyć.
-- `frontend` jest widoczny tylko przez sieć `frontend-net`.
-- `nginx` należy do obu sieci, pełniąc rolę bramki, zabezpieczając system przed bezpośrednim dostępem do Spring Boota.
+- `db` i `redis` sa dostepne wylacznie w sieci wewnetrznej `backend-net`.
+- `frontend` jest widoczny wylacznie przez siec `frontend-net`.
+- `nginx` nalezy do obu sieci i pelni role jedynego punktu wejscia z internetu.
 
-### ✅ Reverse Proxy – Nginx
+### Reverse Proxy - Nginx
 
-Nginx jest **jedynym punktem wejścia** z internetu (port 80). Odpowiada za:
-- Przekazywanie `/api/` → backend Spring Boot
-- Przekazywanie `/ws/` → backend Spring Boot (z odpowiednimi nagłówkami `Upgrade` dla protokołu WebSocket/STOMP)
-- Serwowanie React SPA
-- Nagłówki bezpieczeństwa HTTP (`X-Frame-Options`, `X-Content-Type-Options`, itp.)
-- Rate limiting (ochrona przed Brute Force).
+Nginx nasluchuje na portach 80/443 i odpowiada za:
+- Przekazywanie `/api/` do serwera Spring Boot
+- Przekazywanie `/ws/` do serwera Spring Boot z naglowkami `Upgrade` dla protokolu WebSocket/STOMP
+- Obsluge weryfikacji certyfikatow SSL pod `/.well-known/acme-challenge/` dla domeny niestandardowej
+- Serwowanie aplikacji React SPA
+- Naglowki bezpieczenstwa HTTP (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`)
+- Rate limiting dla endpointow API oraz logowania/rejestracji
 
 ---
 
 ## 2. Warstwa Danych i Zoptymalizowane Zapytania
 
-### ✅ Główna Baza Danych – PostgreSQL 16
+### Glowna Baza Danych - PostgreSQL 16
 
-**Zoptymalizowane Relacje i Modele Danych:**
+Relacje i modele danych:
 
 ```
-Kalendarz
+Calendar
 ├── id (UUID, PK)
 ├── nazwa (String)
-├── wlasciciel → User (FK)
+├── wlasciciel -> User (FK)
 ├── haslo (String, opcjonalne)
-└── CalendarMember (Encja Asocjacyjna dla ról)
+└── CalendarMember (Encja asocjacyjna dla rol)
 
 CalendarMember
 ├── id (UUID, PK)
-├── user → User (FK)
-├── calendar → Kalendarz (FK)
+├── user -> User (FK)
+├── calendar -> Calendar (FK)
 └── role (Enum: COLLABORATOR, FOLLOWER)
 
-Zajęcia (Course)
+Course (Zajecia)
 ├── id (Long, PK)
-├── calendar → Kalendarz (FK)
+├── calendar -> Calendar (FK)
 ├── nazwa, typ, dzien_tygodnia
 ├── godzina_start, czas_trwania_min
 └── data_od, data_do, sala, prowadzacy, notatki
 
-Tablica Ogłoszeń (Notice)
+Notice (Tablica Ogloszen)
 ├── id (UUID, PK)
-├── calendar → Kalendarz (FK)
-├── author → User (FK)
+├── calendar -> Calendar (FK)
+├── author -> User (FK)
 ├── content (Text)
 └── created_at (Timestamp)
 ```
 
-### ✅ JPA i Rozwiązanie Problemu N+1 Query
+### Optymalizacja JPA (Brak problemu N+1 Query)
 
-Warstwa dostępu do danych (Hibernate/JPA) została zoptymalizowana, eliminując problem zapytań N+1.
-- Wykorzystanie `LEFT JOIN FETCH` w `CalendarRepository` oraz `CourseRepository`.
-- Pobieranie głównych zajęć, kalendarzy i subskrybentów ładuje całe grafy obiektów w pojedynczych zapytaniach SQL. To drastycznie zmniejsza obciążenie PostgreSQL.
+Warstwa dostepu do danych wykorzystuje `LEFT JOIN FETCH` w `CalendarRepository` oraz `CourseRepository`. Pobieranie zajec, kalendarzy i listy subskrybentow laduje powiazane encje w pojedynczych zapytaniach SQL.
 
 ---
 
-## 3. Bezpieczeństwo i Kontrola Dostępu
+## 3. Bezpieczenstwo i Kontrola Dostepu
 
-### ✅ Uwierzytelnianie (Stateless JWT)
+### Uwierzytelnianie (Stateless JWT)
 
-Zaimplementowane w oparciu o filtry bezpieczeństwa Spring Security oraz bibliotekę `jjwt`:
-- **Access Token:** Ważny krótko. Służy do autoryzacji zapytań HTTP oraz nawiązywania połączeń WebSocket.
-- Przechwytywanie zapytań następuje w locie w `JwtAuthenticationFilter`.
+Zaimplementowane w oparciu o Spring Security oraz biblioteke `jjwt`:
+- **Access Token:** Krotkotrwaly token sluzacy do autoryzacji zapytan HTTP oraz polaczen WebSocket.
+- **Refresh Token:** Pozwala na automatyczne odnowienie sesji przez interceptor Axios.
 
-### ✅ Zabezpieczenie Resetu Hasła (PasswordResetToken)
+### Reset Hasla (PasswordResetToken)
 
-Aby wyeliminować ryzyko kradzieży tożsamości poprzez wyciek starych linków z maila:
-- Została stworzona encja `PasswordResetToken` przechowująca jednorazowy, generowany serwerowo klucz (UUID) w bazie danych.
-- Token jest rygorystycznie **wygaszany po 15 minutach**.
-- Użycie tokenu i fizyczna zmiana hasła automatycznie go usuwają. Proces ten jest jednorazowy i kryptograficznie bezpieczny.
+- Encja `PasswordResetToken` przechowuje jednorazowy klucz UUID w bazie danych.
+- Token wygasa automatycznie po 15 minutach lub natychmiast po zmianie hasla.
 
-### ✅ System Ról (RBAC)
+### System Rol (RBAC)
 
-- **Właściciel:** Automatyczne prawo modyfikacji wszystkiego wewnątrz kalendarza. Dodawanie/usuwanie współpracowników. Limit tworzenia max 5 własnych kalendarzy na użytkownika.
-- **Collaborator (Współtwórca):** Posiada pełne prawo do wprowadzania, edycji i usuwania *Zajęć* oraz *Ogłoszeń* w kalendarzu.
-- **Follower (Obserwator):** Tylko i wyłącznie tryb do odczytu (READ-ONLY).
+- **Wlasciciel:** Pelne prawo modyfikacji kalendarza oraz zarzadzania dostepem uzytkownikow. Limit 5 wlasnych kalendarzy na konto.
+- **Collaborator (Wspoltworca):** Prawo do dodawania, edycji i usuwania zajec oraz ogloszen.
+- **Follower (Obserwator):** Dostep wylacznie w trybie tylko do odczytu (READ-ONLY).
 
 ---
 
 ## 4. Backend (Spring Boot) i WebSockets
 
-### ✅ REST API (Java 21, Spring Boot 3.x)
+### REST API (Java 21, Spring Boot 3.4)
 
-Backend wystawia w pełni zresteryzowane i zabezpieczone endpointy (zabezpieczone adnotacjami takimi jak `@PreAuthorize` czy walidacją wewnątrz serwisów). Odpowiada za całą logikę autoryzacyjną.
+Backend udostepnia endpointy REST zabezpieczone walidacja uprawnien w warstwie serwisowej.
 
-### ✅ Komunikacja Czasu Rzeczywistego (Live Update)
+### Komunikacja Czasu Rzeczywistego (WebSockets / STOMP)
 
-Aplikacja wykorzystuje technologię **WebSockets z protokołem STOMP**, by błyskawicznie przesyłać modyfikacje (utworzenie, edycja, usunięcie) zajęć oraz ogłoszeń:
-- **Konfiguracja Brokera:** Punkt wejścia znajduje się pod adresem `/ws`. Działają kolejki na topicach: `/topic/calendar/{id}`.
-- **Bezpieczeństwo Połączeń:** Springowy `ChannelInterceptor` (`WebSocketSecurityInterceptor`) w locie, w fazie `CONNECT`, dekoduje token JWT. Odrzuca intruzów bez ważnego tokenu z nagłówka, chroniąc cały kanał.
-- **Rozsyłanie Wiadomości:** Elementy modyfikujące stan (np. `CourseService` czy `NoticeService`) na zakończenie transakcji wysyłają powiadomienie (`messagingTemplate.convertAndSend`) wraz z nowym obiektem.
-
-### ✅ Tablica Ogłoszeń (Noticeboard)
-
-Dołożony moduł do natychmiastowej komunikacji we współdzielonym kalendarzu. Odciąża standardowe opisy zajęć poprzez umożliwienie wrzucania notyfikacji (np. *"Dziś odwołane"*, *"Przenosimy do sali A"*). Składa się z kontrolera, serwisu z obsługą STOMP oraz encji zintegrowanej z bazą danych.
+- Punkt wejscia znajduje sie pod adresem `/ws`, a subskrypcje dzialaja na kanalach `/topic/calendar/{id}`.
+- `WebSocketSecurityInterceptor` weryfikuje token JWT podczas fazy `CONNECT`.
+- Po kazdej operacji utworzenia, edycji lub usuniecia zajec czy ogloszenia serwis rozglasza zdarzenie przez `SimpMessagingTemplate`.
 
 ---
 
-## 5. Frontend (React) i Doświadczenie Użytkownika
+## 5. Frontend (React) i Architektura Interfejsu
 
-### ✅ Architektura Frontendu
-
-- **React 18** + **Vite 6** (Błyskawiczne środowisko deweloperskie i mały footprint).
-- Interfejs w terminalowym designie (klimat retro-CLI / neonowy granat + błękit). Niestandardowe, "pikselowe" paski przewijania (scrollbary) pasujące do siatki.
-- Axios z globalnymi interceptorami automatycznie przechwytującymi tokeny Bearer JWT z localStorage.
-
-### ✅ Integracja Hooka useStomp
-
-- Wdrożony Custom Hook `useStomp` (bazujący na `@stomp/stompjs` oraz fallbackach `sockjs-client`). 
-- W momencie wejścia użytkownika do widoku, następuje podpięcie go do subskrypcji wydarzeń z jego kalendarza bazowego.
-- Zmiany po stronie serwera aplikowane są bez odświeżania strony (automatyczne aktualizacje na komponentach).
-
-### ✅ Moduł Tablicy Ogłoszeń w UI
-
-Na głównym widoku (WeekPage) osadzony jest komponent `<Noticeboard />`. Widok wspiera ułożenie z panelem pobocznym (dzięki Flexbox: `.week-layout`). 
+- **React 19** + **Vite 6** + **React Router 7**.
+- Чиsty, techniczny design oparty o czytelna siatke, wysoki kontrast, ostre krawedzie i typografie `Inter` oraz `JetBrains Mono` (bez animacji kursora, emotikonow i sztucznych ozdobnikow).
+- Wbudowane strony prawne: Polityka Prywatnosci (`/polityka-prywatnosci`) oraz Regulamin (`/regulamin`), dostepne zarowno dla zalogowanych, jak i niezalogowanych uzytkownikow.
+- Obsluga favicona SVG (`/favicon.svg`) oraz konfiguracji domeny (`public/CNAME`).
 
 ---
 
-## 6. DevOps, Monitoring i Utrzymanie
+## 6. Konfiguracja Domeny i Utrzymanie
 
-- Pliki wdrożeniowe Docker odizolowane, odseparowane konfiguracjami `.env`. 
-- **Baza PostgreSQL:** Wymaga tylko standardowych regularnych zrzutów (np. cron z `pg_dump`).
-- Serwer w architekturze "Stateless" – można bezproblemowo duplikować i load-balancować warstwę Spring Boota dla uzyskania większej dostępności.
+- Konfiguracja srodowiska produkcyjnego odbywa sie poprzez plik `.env` (`DOMAIN_NAME`, `FRONTEND_URL`, `CORS_ALLOWED_ORIGINS`).
+- Serwer dziala bezstanowo (Stateless JWT), co umozliwia skalowanie horyzontalne warstwy backendowej.
 
 ---
 
 ## 7. Uruchomienie Projektu
 
-Masz dwie ścieżki wdrożenia:
-
-**1. Szybki start i produkcja (Docker):**
+**1. Srodowisko produkcyjne / Docker:**
 ```bash
 docker-compose up --build -d
 ```
-Aplikacja będzie dostępna pod adresem: `http://localhost`. Wszystko – baza, backend, frontend i proxy – podniesie się samodzielnie.
+Aplikacja bedzie dostepna pod adresem `http://localhost` lub pod skonfigurowana domena.
 
-**2. Środowisko deweloperskie (HMR, LiveReload):**
-- Wystartuj tylko bazę danych w tle: `docker-compose up db -d`
-- W jednym terminalu postaw Spring Boota: `cd backend-spring` i uruchom `.\mvnw spring-boot:run`
-- W drugim terminalu podnieś Reacta: `cd frontend`, zainstaluj paczki poleceniem `npm install` i wpisz `npm run dev` (dostęp pod adresem `http://localhost:5173`).
+**2. Srodowisko deweloperskie:**
+- Uruchom baze danych i Redis: `docker-compose up db redis -d`
+- Uruchom backend: `cd backend-spring && ./mvnw spring-boot:run`
+- Uruchom frontend: `cd frontend && npm install && npm run dev` (dostep pod `http://localhost:5173`).

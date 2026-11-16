@@ -1,6 +1,6 @@
 services:
 
-  # ── Baza Danych ────────────────────────────────────────────────────────
+  # Baza Danych PostgreSQL
   db:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -18,7 +18,7 @@ services:
       timeout: 5s
       retries: 10
 
-  # ── Cache / Rate-Limit store ───────────────────────────────────────────
+  # Cache / Rate-Limit store
   redis:
     image: redis:7-alpine
     restart: unless-stopped
@@ -33,7 +33,7 @@ services:
       timeout: 3s
       retries: 5
 
-  # ── Spring Boot Backend ─────────────────────────────────────────────
+  # Spring Boot Backend
   backend:
     build: ./backend-spring
     restart: unless-stopped
@@ -49,35 +49,36 @@ services:
     networks:
       - backend-net
 
-  # ── React Frontend (statyczne pliki przez nginx) ───────────────────────
+  # React Frontend (statyczne pliki przez nginx)
   frontend:
     build: ./frontend
     restart: unless-stopped
     networks:
       - frontend-net
 
-  # ── Reverse Proxy (jedyny punkt wejścia z internetu) ──────────────────
+  # Reverse Proxy (punkt wejscia dla ruchu HTTP/HTTPS i niestandardowej domeny)
   nginx:
     build: ./nginx
     restart: unless-stopped
     ports:
       - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN_NAME: ${DOMAIN_NAME:-localhost}
     depends_on:
       - backend
       - frontend
     networks:
       - frontend-net
-      - backend-net   # potrzebny żeby przekazywać /api/ do backendu
+      - backend-net
 
-# ── Sieci Docker ────────────────────────────────────────────────────────
 networks:
-  frontend-net:   # Nginx ↔ Frontend (publiczna)
+  frontend-net:
     driver: bridge
-  backend-net:    # Nginx ↔ Backend ↔ DB ↔ Redis (wewnętrzna – odizolowana)
+  backend-net:
     driver: bridge
-    internal: false  # false, bo nginx musi sięgać do backendu; DB i Redis są dostępne tylko wewnątrz
+    internal: false
 
-# ── Trwałe Wolumeny ─────────────────────────────────────────────────────
 volumes:
   postgres_data:
   redis_data:

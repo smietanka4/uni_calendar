@@ -1,8 +1,7 @@
 /**
- * Testy klienta API – interceptory, konfiguracja.
+ * Testy klienta API - interceptory i konfiguracja.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import axios from 'axios'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Mock axios before importing client
 vi.mock('axios', () => {
@@ -27,7 +26,6 @@ describe('API Client', () => {
   })
 
   it('creates axios instance with correct baseURL', async () => {
-    // Re-import to trigger the module
     vi.resetModules()
     const axiosMod = (await import('axios')).default
     await import('../../api/client')

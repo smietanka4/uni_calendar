@@ -13,17 +13,21 @@ export default function ForgotPasswordPage() {
       setStatus({ ...status, error: 'Podaj adres e-mail.' })
       return
     }
-    
+
     setStatus({ loading: true, success: '', error: '' })
     try {
       const { data } = await client.post('/auth/password-reset', { email })
-      setStatus({ loading: false, success: data.message || 'Jeśli konto istnieje, e-mail został wysłany.', error: '' })
+      setStatus({
+        loading: false,
+        success: data.message || 'Jeśli konto istnieje, link do zmiany hasła został wysłany.',
+        error: '',
+      })
       setEmail('')
     } catch (err) {
-      setStatus({ 
-        loading: false, 
-        success: '', 
-        error: err.response?.data?.error || 'Wystąpił błąd podczas wysyłania zgłoszenia.' 
+      setStatus({
+        loading: false,
+        success: '',
+        error: err.response?.data?.error || 'Wystąpił błąd podczas wysyłania zgłoszenia.',
       })
     }
   }
@@ -32,9 +36,9 @@ export default function ForgotPasswordPage() {
     <div className="auth-page">
       <div className="auth-card card">
         <div className="auth-header">
-          <span className="auth-icon">🔑</span>
-          <h1>Reset Hasła</h1>
-          <p className="text-muted">Podaj e-mail powiązany z Twoim kontem</p>
+          <span className="auth-brand-tag">Odzyskiwanie dostępu</span>
+          <h1>Reset hasła</h1>
+          <p className="text-muted">Podaj adres e-mail powiązany z Twoim kontem</p>
         </div>
 
         {status.error && <div className="alert alert-error">{status.error}</div>}
@@ -54,19 +58,19 @@ export default function ForgotPasswordPage() {
               required
             />
           </div>
-          
+
           <button
             className="btn btn-primary w-full"
             type="submit"
             disabled={status.loading}
           >
-            {status.loading ? 'Wysyłanie…' : 'Wyślij Instrukcje'}
+            {status.loading ? 'Wysyłanie...' : 'Wyślij instrukcje'}
           </button>
         </form>
 
         <div className="divider" />
         <p className="text-center text-sm text-muted">
-          Pamiętasz jednak hasło? <Link to="/login">Zaloguj się</Link>
+          Pamiętasz hasło? <Link to="/login">Wróć do logowania</Link>
         </p>
       </div>
     </div>

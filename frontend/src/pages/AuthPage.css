@@ -1,61 +1,72 @@
-/* Terminal Auth Screen */
+/* ==========================================
+   AUTH PAGES - Clean Functional Layout
+   ========================================== */
+
 .auth-page {
-  height: 100vh; /* Pełny ekran, kompatybilny z overflow:hidden na body */
-  overflow-y: auto; /* Auth scroll wewnętrznie jeśli potrzebne */
+  flex: 1;
+  overflow-y: auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1.5rem;
-  /* Pixel grid background */
-  background-image:
-    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,8,20,0.3) 2px, rgba(0,8,20,0.3) 4px),
-    linear-gradient(135deg, #020c18 0%, #050f24 50%, #020c18 100%);
+  padding: 2rem 1.5rem;
+  background: var(--bg);
 }
 
 .auth-card {
   width: 100%;
   max-width: 440px;
-  padding: 2rem 2rem;
-  border: 2px solid var(--border);
-  box-shadow: 6px 6px 0 var(--primary-dim);
-}
-
-/* Terminal window title bar */
-.auth-card::before {
-  content: '[ KALENDARZ.EXE ]──────────────────';
-  display: block;
-  font-family: var(--font-body);
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  letter-spacing: 0.04em;
-  border-bottom: 2px solid var(--border);
-  padding-bottom: 0.6rem;
-  margin-bottom: 1.5rem;
+  padding: 2.25rem 2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
 }
 
 .auth-header {
   text-align: left;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
 }
-.auth-icon {
-  font-size: 2rem;
-  display: none; /* hide emoji, terminal style */
+
+.auth-brand-tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--primary);
+  margin-bottom: 0.4rem;
 }
+
 .auth-header h1 {
   font-family: var(--font-display);
-  font-size: 2rem;
-  color: var(--primary);
-  letter-spacing: 0.06em;
-  text-shadow: 0 0 10px var(--primary-glow);
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--text-bright);
+  margin-bottom: 0.35rem;
 }
-.auth-header h1::after {
-  content: '_';
-  animation: blink 1s step-start infinite;
-  color: var(--cursor);
-}
+
 .auth-header p {
-  font-size: 0.82rem;
+  font-family: var(--font-body);
+  font-size: 0.88rem;
   color: var(--text-muted);
-  margin-top: 0.2rem;
 }
-.auth-header p::before { content: '// '; color: var(--border-bright); }
+
+.auth-legal-links {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
+}
+.auth-legal-links a {
+  color: var(--text-muted);
+}
+.auth-legal-links a:hover {
+  color: var(--text-bright);
+}

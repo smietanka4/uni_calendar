@@ -31,20 +31,19 @@ export default function EditCoursePage() {
   const [fetchLoading, setFetchLoading] = useState(true)
 
   useEffect(() => {
-    // 2. Fetch course details
-    client.get(`/courses/${id}`)
-      .then(res => {
-        // Obetnij sekundy z godziny startu do formatu HH:MM jeśli trzeba
-        const data = res.data;
+    client
+      .get(`/courses/${id}`)
+      .then((res) => {
+        const data = res.data
         if (data.godzina_start && data.godzina_start.length > 5) {
-          data.godzina_start = data.godzina_start.substring(0, 5);
+          data.godzina_start = data.godzina_start.substring(0, 5)
         }
-        setForm(data);
-        setFetchLoading(false);
+        setForm(data)
+        setFetchLoading(false)
       })
       .catch(() => {
-        setError('Nie udało się pobrać danych zajęć.')
-        setFetchLoading(false);
+        setError('Nie udało się pobrać danych wybranych zajęć.')
+        setFetchLoading(false)
       })
   }, [id])
 
@@ -56,39 +55,59 @@ export default function EditCoursePage() {
     setError('')
     setSuccess('')
 
-    if (!form.nazwa.trim()) { setError('Podaj nazwę przedmiotu.'); return }
-    if (!form.data_od || !form.data_do) { setError('Podaj daty początku i końca zajęć.'); return }
-    if (form.data_do < form.data_od) { setError('Data końca musi być późniejsza niż data początku.'); return }
+    if (!form.nazwa.trim()) {
+      setError('Podaj nazwę przedmiotu.')
+      return
+    }
+    if (!form.data_od || !form.data_do) {
+      setError('Podaj daty początku i końca zajęć.')
+      return
+    }
+    if (form.data_do < form.data_od) {
+      setError('Data końca musi być późniejsza niż data początku.')
+      return
+    }
 
     setLoading(true)
     try {
       await client.put(`/courses/${id}`, form)
-      setSuccess('Zajęcia zostały zaktualizowane!')
-      setTimeout(() => navigate(-1), 800) // Wróć tam skąd przyszedł (albo do /wszystkie)
+      setSuccess('Zajęcia zostały zaktualizowane.')
+      setTimeout(() => navigate(-1), 800)
     } catch (err) {
       const data = err.response?.data || {}
       const first = Object.values(data)[0]
-      setError(Array.isArray(first) ? first[0] : first || 'Błąd zapisu.')
+      setError(Array.isArray(first) ? first[0] : first || 'Błąd zapisu zmian.')
     } finally {
       setLoading(false)
     }
   }
 
-  if (fetchLoading) return <div className="page"><div className="spinner" /></div>
-  if (!form) return <div className="page"><div className="alert alert-error">{error}</div></div>
+  if (fetchLoading) {
+    return (
+      <div className="page">
+        <div className="spinner" />
+      </div>
+    )
+  }
+  if (!form) {
+    return (
+      <div className="page">
+        <div className="alert alert-error">{error}</div>
+      </div>
+    )
+  }
 
   return (
     <div className="page">
-      <h1>[ EDYCJA ZAJĘĆ ] {form.nazwa}</h1>
+      <h1>Edycja zajęć: {form.nazwa}</h1>
       <p className="text-muted text-sm mt-1" style={{ marginBottom: '1.5rem' }}>
-        // Edytuj dane i zapisz zmiany w systemie
+        Zaktualizuj parametry przedmiotu i zapisz zmiany w harmonogramie.
       </p>
 
-      {error   && <div className="alert alert-error">{error}</div>}
+      {error && <div className="alert alert-error">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
 
       <form onSubmit={handleSubmit} className="card" noValidate>
-        {/* Nazwa + Typ */}
         <div className="form-row">
           <div className="form-group">
             <label htmlFor="edit-nazwa">Nazwa przedmiotu *</label>
@@ -103,12 +122,15 @@ export default function EditCoursePage() {
           <div className="form-group">
             <label htmlFor="edit-typ">Typ zajęć</label>
             <select id="edit-typ" value={form.typ} onChange={set('typ')}>
-              {TYPY.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+              {TYPY.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
             </select>
           </div>
         </div>
 
-        {/* Dzień + Godzina + Czas trwania */}
         <div className="form-row">
           <div className="form-group">
             <label htmlFor="edit-dzien">Dzień tygodnia</label>
@@ -117,7 +139,11 @@ export default function EditCoursePage() {
               value={form.dzien_tygodnia}
               onChange={(e) => setForm((p) => ({ ...p, dzien_tygodnia: Number(e.target.value) }))}
             >
-              {DAYS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
+              {DAYS.map((d) => (
+                <option key={d.value} value={d.value}>
+                  {d.label}
+                </option>
+              ))}
             </select>
           </div>
           <div className="form-group">
@@ -143,7 +169,6 @@ export default function EditCoursePage() {
           </div>
         </div>
 
-        {/* Daty */}
         <div className="form-row">
           <div className="form-group">
             <label htmlFor="edit-od">Data pierwszych zajęć *</label>
@@ -168,7 +193,6 @@ export default function EditCoursePage() {
           </div>
         </div>
 
-        {/* Sala + Prowadzący */}
         <div className="form-row">
           <div className="form-group">
             <label htmlFor="edit-sala">Sala</label>
@@ -190,7 +214,6 @@ export default function EditCoursePage() {
           </div>
         </div>
 
-        {/* Notatki */}
         <div className="form-group">
           <label htmlFor="edit-notatki">Notatki (opcjonalnie)</label>
           <textarea
@@ -202,10 +225,10 @@ export default function EditCoursePage() {
 
         <div className="flex gap-1 mt-2">
           <button type="submit" className="btn btn-primary" disabled={loading}>
-            {loading ? 'Zapisywanie…' : '💾 ZAPISZ ZMIANY'}
+            {loading ? 'Zapisywanie...' : 'Zapisz zmiany'}
           </button>
           <button type="button" className="btn btn-ghost" onClick={() => navigate(-1)}>
-            ANULUJ
+            Anuluj
           </button>
         </div>
       </form>

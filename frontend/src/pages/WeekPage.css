@@ -1,114 +1,94 @@
-/* Week Page – Terminal Column Layout & Modal */
+/* ==========================================
+   WEEK PAGE - Timetable Grid & Modal
+   ========================================== */
+
 .week-header {
   margin-bottom: 1rem;
   flex-wrap: wrap;
   gap: 1rem;
-  flex-shrink: 0; /* Nie zmniejszaj headera – kalendarz zajmuje resztę */
+  flex-shrink: 0;
 }
-.week-header h1 { font-family: var(--font-display); font-size: 2rem; color: var(--primary); }
-.week-header h1::before { content: '> '; color: var(--text-muted); }
-.mb-2 { margin-bottom: 1.5rem; }
+.week-header h1 {
+  font-size: 1.5rem;
+  color: var(--text-bright);
+}
 
-/* Wrapper scrolluje wewnątrz – zarówno X (wąskie ekrany) jak Y (cała siatka) */
 .cal-wrapper {
-  flex: 1;           /* Zajmuje resztę wysokości strony */
-  min-height: 0;     /* Kluczowe dla flex-child żeby mógł się skurczyć */
+  flex: 1;
+  min-height: 0;
   overflow: auto;
-  padding: 0 !important; /* Nadpisz .card { padding: 1.5rem } */
-}
-/* Usuń narożny akcent .card::before – zakłócał przyleganie siatki do krawędzi */
-.cal-wrapper.card::before {
-  display: none;
+  padding: 0 !important;
+  border-radius: var(--radius-sm);
 }
 
-/* ── Niestandardowy scrollbar (terminal style) ─────────────────── */
-.cal-wrapper::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-.cal-wrapper::-webkit-scrollbar-track {
-  background: var(--surface-2);
-  border-left: 1px solid var(--border);
-}
+/* Scrollbar */
+.cal-wrapper::-webkit-scrollbar { width: 8px; height: 8px; }
+.cal-wrapper::-webkit-scrollbar-track { background: var(--surface); border-left: 1px solid var(--border); border-top: 1px solid var(--border); }
 .cal-wrapper::-webkit-scrollbar-thumb {
   background: var(--border-bright);
-  border: 1px solid var(--surface-2);
 }
-.cal-wrapper::-webkit-scrollbar-thumb:hover {
-  background: var(--primary);
-  box-shadow: 0 0 4px var(--primary-glow);
-}
-.cal-wrapper::-webkit-scrollbar-corner {
-  background: var(--surface-2);
-}
-/* Firefox */
-.cal-wrapper {
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-bright) var(--surface-2);
-}
+.cal-wrapper::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+.cal-wrapper { scrollbar-width: thin; scrollbar-color: var(--border-bright) var(--surface); }
 
-/* 8 columns: 1 time column (60px) + 7 days (min 120px each) */
+/* Grid */
 .cal-grid {
-  min-width: 900px; /* Force scroll on small screens */
+  min-width: 900px;
   display: grid;
-  grid-template-columns: 60px repeat(7, 1fr);
+  grid-template-columns: 64px repeat(7, 1fr);
   grid-template-rows: auto 1fr;
 }
 
-/* Corner top left – sticky żeby przy scrollu Y nagłówki zostały */
 .cal-header-corner {
   position: sticky;
   top: 0;
   z-index: 20;
-  border-right: 2px solid var(--border);
-  border-bottom: 2px dashed var(--border);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
   background: var(--surface-2);
 }
 
-/* Day Headers – sticky przy scrollu pionowym */
 .cal-header-day {
   position: sticky;
   top: 0;
   z-index: 20;
-  padding: 0.6rem 0.4rem;
+  padding: 0.55rem 0.4rem;
   text-align: center;
-  border-right: 2px solid var(--border);
-  border-bottom: 2px dashed var(--border);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
   background: var(--surface-2);
 }
 .cal-header-day:last-child { border-right: none; }
-.cal-header-day.today {
-  background: var(--primary-dim);
-}
+.cal-header-day.today { background: var(--primary-dim); }
+
 .cal-day-name {
-  font-family: var(--font-display);
-  font-size: 1.3rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 600;
   color: var(--text-bright);
-  letter-spacing: 0.04em;
   text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 .cal-header-day.today .cal-day-name {
-  color: var(--primary-hover);
-  text-shadow: 0 0 6px var(--primary-glow);
+  color: var(--primary);
 }
 .cal-day-date {
-  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
   color: var(--text-muted);
-  font-family: var(--font-body);
+  margin-top: 0.15rem;
 }
 
-/* Calendar Body - takes full width underneath headers */
+/* Body */
 .cal-body {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 60px repeat(7, 1fr);
+  grid-template-columns: 64px repeat(7, 1fr);
   position: relative;
 }
 
-/* Background lines wrapper */
 .cal-bg-lines {
   position: absolute;
-  top: 0; left: 60px; right: 0; bottom: 0;
+  top: 0; left: 64px; right: 0; bottom: 0;
   pointer-events: none;
   z-index: 0;
 }
@@ -117,104 +97,98 @@
   left: 0; right: 0;
   height: 1px;
   background: var(--border);
-  opacity: 0.4;
-}
-.cal-bg-line::before {
-  content: '..........';
-  display: block;
-  overflow: hidden;
-  letter-spacing: 12px;
-  color: var(--border);
-  line-height: 0;
-  opacity: 0.5;
+  opacity: 0.55;
 }
 
-/* Left Time Column */
+/* Time column */
 .cal-time-col {
   position: relative;
-  border-right: 2px solid var(--border);
+  border-right: 1px solid var(--border);
   background: var(--surface-2);
-  z-index: 1; /* Above bg lines */
+  z-index: 1;
 }
 .cal-time-label {
   position: absolute;
-  right: 0.4rem;
+  right: 0.5rem;
   transform: translateY(-50%);
-  font-family: var(--font-body);
-  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
   color: var(--text-muted);
 }
 
 /* Day columns */
 .cal-day-col {
   position: relative;
-  border-right: 1px dashed var(--border);
-  z-index: 1; 
+  border-right: 1px solid rgba(46, 56, 68, 0.65);
+  z-index: 1;
 }
-.cal-day-col:last-child {
-  border-right: none;
-}
-.cal-day-col.today {
-  background: rgba(61,122,237,0.03); /* Subtle highlight for today column */
-}
+.cal-day-col:last-child { border-right: none; }
+.cal-day-col.today { background: rgba(229, 149, 0, 0.03); }
 
-/* Event elements */
+/* Event blocks (Minimal functional hover, no layout shifts) */
 .cal-event {
   position: absolute;
-  left: 2px; right: 2px;
-  background: var(--bg);
+  left: 3px; right: 3px;
+  background: var(--surface-2);
   border: 1px solid var(--border);
   border-left: 3px solid var(--primary);
-  padding: 0.2rem 0.4rem;
+  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.45rem;
   overflow: hidden;
-  transition: border-color var(--transition), background var(--transition);
+  transition: border-color var(--transition), background-color var(--transition);
   z-index: 5;
   cursor: pointer;
 }
 .cal-event:hover {
   border-color: var(--border-bright);
   border-left-color: var(--primary-hover);
-  background: var(--surface);
+  background: var(--surface-3);
   z-index: 10;
 }
 
 .cal-event-time {
-  font-family: var(--font-display);
-  font-size: 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
   color: var(--primary);
-  line-height: 1.1;
-  margin-bottom: 0.1rem;
+  line-height: 1.15;
+  margin-bottom: 0.15rem;
 }
 .cal-event-title {
   font-family: var(--font-display);
-  font-size: 1.05rem;
+  font-size: 0.85rem;
+  font-weight: 600;
   color: var(--text-bright);
-  line-height: 1.1;
+  line-height: 1.2;
   word-break: break-word;
 }
 .cal-event-meta {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
-  font-family: var(--font-body);
+  font-family: var(--font-mono);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
 }
 .cal-event-prow {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
-  font-family: var(--font-body);
-  border-top: 1px dashed var(--border);
+  font-family: var(--font-mono);
+  border-top: 1px solid var(--border);
   padding-top: 0.2rem;
+  margin-top: 0.2rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-
-/* MODAL TERMINAL STYLE */
+/* Modal */
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(2, 12, 24, 0.85);
-  backdrop-filter: blur(2px);
+  background: rgba(15, 18, 22, 0.82);
   z-index: 1000;
   display: flex;
   align-items: center;
@@ -225,72 +199,85 @@
 .modal-content {
   width: 100%;
   max-width: 500px;
-  background: var(--bg);
-  border: 2px solid var(--border-bright);
-  box-shadow: 8px 8px 0 var(--primary-dim);
+  background: var(--surface);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
   padding: 1.5rem;
   position: relative;
-  animation: modal-enter 0.15s steps(3) forwards;
-}
-@keyframes modal-enter {
-  from { transform: scale(0.95); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  border-bottom: 2px dashed var(--border);
-  padding-bottom: 1rem;
-  margin-bottom: 1.2rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.85rem;
+  margin-bottom: 1rem;
 }
 .modal-header h2 {
   font-family: var(--font-display);
-  font-size: 1.6rem;
-  color: var(--primary);
-  line-height: 1.1;
-  text-shadow: 0 0 6px var(--primary-glow);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-bright);
+  line-height: 1.25;
 }
 
 .btn-close {
   background: transparent;
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   color: var(--text-muted);
-  font-family: var(--font-display);
-  font-size: 1.2rem;
-  width: 32px; height: 32px;
-  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: all var(--transition);
+  transition: border-color var(--transition), background-color var(--transition), color var(--transition);
 }
 .btn-close:hover {
   border-color: var(--danger);
-  color: var(--danger);
-  background: rgba(224, 82, 82, 0.1);
+  color: #fff;
+  background: var(--danger);
 }
 
 .modal-body p {
   font-family: var(--font-body);
-  font-size: 1rem;
-  margin-bottom: 0.6rem;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
   color: var(--text-muted);
 }
-.modal-body .text-bright { color: var(--text-bright); }
+.modal-body .text-bright {
+  color: var(--text-bright);
+}
 
 .modal-notes {
-  border-left: 3px solid var(--border-bright);
+  border-left: 3px solid var(--accent);
   background: var(--surface-2);
-  padding: 0.8rem;
-  font-family: var(--font-body);
-  font-size: 0.9rem;
+  padding: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
   color: var(--text);
   margin-top: 1rem;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 
 .week-layout {
   display: flex;
-  gap: 20px;
-  align-items: flex-start;
-  height: 100%;
+  gap: 1.25rem;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+}
+
+@media (max-width: 960px) {
+  .week-layout {
+    flex-direction: column;
+  }
+  .noticeboard-wrapper {
+    width: 100% !important;
+  }
 }

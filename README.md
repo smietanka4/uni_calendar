@@ -1,101 +1,84 @@
-# Uni Calendar - Uczelniany Kalendarz Współdzielony
+# Uni Calendar - Uczelniany Kalendarz Wspoldzielony
 
-Nowoczesna aplikacja webowa typu SPA (Single Page Application) stworzona do zarządzania plikami zajęć z funkcją współdzielenia, komunikacji w czasie rzeczywistym i tablicą ogłoszeń. 
+Aplikacja webowa typu SPA (Single Page Application) stworzona do zarzadzania tygodniowymi planami zajec akademickich z funkcja wspoldzielenia w grupach studenckich, synchronizacja w czasie rzeczywistym i tablica ogloszen.
 
-Aplikacja oparta na zaawansowanej architekturze serwerowej **Spring Boot (Java 21)** oraz wysoce reaktywnym interfejsie w **React.js**. Całość infrastruktury uruchamiana jest z wykorzystaniem kontenerów **Docker**.
+System oparty jest na architekturze serwerowej **Spring Boot (Java 21)** oraz interfejsie **React.js**. Calosc infrastruktury uruchamiana jest z wykorzystaniem kontenerow **Docker**.
 
-## Funkcjonalności
+## Funkcjonalnosci
 
-- ✅ **Bezpieczna Autoryzacja:** Rejestracja, logowanie oraz resetowanie haseł oparte o krótkotrwałe tokeny wędrujące przez JWT (JSON Web Tokens) chroniące przed podsłuchiwaniem i kradzieżą dostępu.
-- ✅ **Zarządzanie Kalendarzami z Limitem:** Limit 5 kalendarzy per użytkownik. Ogranicza obciążenie bazy. 
-- ✅ **System Ról i Uprawnień (RBAC):**
-  - **Właściciel / Collaborator (Współtwórca):** Pełne prawa do tworzenia, edycji i usuwania lekcji i wiadomości.
-  - **Follower (Obserwator):** Widzi nałożone plany w trybie tylko do odczytu (READ-ONLY).
-- ✅ **Live Update / WebSockets:** Pełna integracja z protokołem STOMP w Spring Boot oraz własny hook `useStomp` na froncie. Kiedy jeden użytkownik edytuje kalendarz, wszystkie strony podłączonych użytkowników natychmiast odświeżają się bez ręcznego przeładowywania.
-- ✅ **Tablica Ogłoszeń (Noticeboard):** Dynamiczne okno przyklejone do kalendarza na komunikaty grupy (odwoływanie zajęć, zmiany sal). Działa na żywo w oparciu o sieć WebSockets.
-- ✅ **Rozwiązany Problem N+1 Query:** Zoptymalizowane encje i zapytania JPQL z `JOIN FETCH`, które skracają czas odpowiedzi bazy PostgreSQL do minimum.
+- **Autoryzacja JWT:** Rejestracja, logowanie oraz resetowanie hasel oparte o krotkotrwale tokeny dostepowe i odswiezajace (JSON Web Tokens).
+- **Zarzadzanie Kalendarzami z Limitem:** Limit 5 wlasnych kalendarzy na uzytkownika w celu zachowania wydajnosci bazy danych.
+- **System Rol i Uprawnien (RBAC):**
+  - **Wlasciciel / Collaborator (Wspoltworca):** Pelne prawa do tworzenia, edycji i usuwania zajec oraz publikowania ogloszen.
+  - **Follower (Obserwator):** Podglad nalozonych planow w trybie tylko do odczytu (READ-ONLY).
+- **Synchronizacja Live (WebSockets / STOMP):** Integracja z protokolem STOMP w Spring Boot oraz hook `useStomp` na froncie. Zmiany w kalendarzu oraz nowe komunikaty sa natychmiast przesylane do podlaczonych uzytkownikow.
+- **Tablica Ogloszen (Noticeboard):** Panel przypiety do widoku tygodniowego sluzacy do przekazywania informacji grupowych (odwolane zajecia, zmiany sal).
+- **Optymalizacja Zapytan JPA:** Wyeliminowany problem N+1 Query dzieki zapytaniom JPQL z `LEFT JOIN FETCH`.
+- **Dokumenty Prawne i Konfiguracja Domeny:** Wbudowane podstrony Polityki Prywatnosci (`/polityka-prywatnosci`) oraz Regulaminu (`/regulamin`), a takze konfiguracja Nginx i CNAME gotowa do podlaczenia domeny niestandardowej.
 
 ## Wymagania
 
 - [Docker](https://www.docker.com/) oraz Docker Compose
-- *Opcjonalnie (do pracy bez dockera)*: Java 21, Maven/MavenWrapper, Node.js v22+
+- *Opcjonalnie (do pracy bez Dockera)*: Java 21, Maven Wrapper, Node.js v22+
 
-## Szybkie Uruchomienie (Zalecane)
+## Szybkie Uruchomienie
 
-Uruchomienie kompletnego środowiska opartego na pięciu współpracujących serwisach (Baza PostgreSQL, Redis, Backend API, Frontend Node, Reverse Proxy Nginx).
+Uruchomienie srodowiska opartego na pieciu wspolpracujacych serwisach (PostgreSQL, Redis, Backend API, Frontend SPA, Reverse Proxy Nginx):
 
-1. Upewnij się, że masz skopiowany plik środowiskowy i zmienione hasła (szczególnie JWT):
+1. Skopiuj plik srodowiskowy i uzupelnij dane konfiguracyjne (szczegolnie `JWT_SECRET`, `POSTGRES_PASSWORD` oraz `DOMAIN_NAME`):
 ```bash
 cp .env.example .env
 ```
-2. Skompiluj i odpal maszyny w tle jednym poleceniem:
+2. Zbuduj i uruchom kontenery w tle:
 ```bash
 docker-compose up --build -d
 ```
-3. Otwórz w przeglądarce: **http://localhost**
-   *Nginx automatycznie przekieruje zapytania /api i /ws do serwera Spring Boot i wyświetli front w Reakcie.*
+3. Otworz w przegladarce adres: **http://localhost** (lub skonfigurowana domene).
+
+## Podlaczenie Domeny Niestandardowej (Custom Domain)
+
+1. Skieruj rekordy DNS typu `A` (dla domeny glownej np. `unicalendar.pl`) oraz `CNAME` (dla `www.unicalendar.pl`) na publiczny adres IP serwera.
+2. W pliku `.env` ustaw zmienne:
+   - `DOMAIN_NAME=unicalendar.pl`
+   - `FRONTEND_URL=https://unicalendar.pl`
+   - `CORS_ALLOWED_ORIGINS=https://unicalendar.pl,https://www.unicalendar.pl`
+3. W pliku `nginx/nginx.conf` dyrektywa `server_name` oraz katalog `/.well-known/acme-challenge/` sa skonfigurowane pod weryfikacje certyfikatow SSL (Let's Encrypt / Certbot). Dla hostingu statycznego w katalogu `frontend/public/CNAME` znajduje sie plik definicji domeny.
 
 ## Struktura projektu
 
 ```
 uni_calendar/
-├── docker-compose.yml     # Architektura maszyn i sieci
-├── .env.example           # Bezpieczne wstrzykiwanie haseł
-├── .github/workflows/     # CI/CD pipeline (GitHub Actions)
-├── backend-spring/        # Backend w Spring Boot
+├── docker-compose.yml     # Definicja kontenerow i sieci
+├── .env.example           # Szablon zmiennych srodowiskowych
+├── .github/workflows/     # Pipeline CI/CD (GitHub Actions)
+├── backend-spring/        # Backend Spring Boot (Java 21)
 │   ├── src/main/java/com/unicalendar/
-│   │   ├── config/        # Konfiguracja (Bezpieczeństwo JWT, WebSockets, CORS)
-│   │   ├── controller/    # Warstwa wejściowa REST
-│   │   ├── model/         # Tabele (Course, Calendar, Notice, User, Members)
-│   │   ├── repository/    # Optymalizacja JPA
-│   │   └── service/       # Główna logika i uwierzytelnianie
-│   ├── src/test/           # Testy jednostkowe Spring Boot (JUnit 5)
-│   └── pom.xml            # Drzewo zależności Mavena
-├── frontend/              # Frontend React
+│   │   ├── config/        # Bezpieczenstwo JWT, WebSockets, CORS
+│   │   ├── controller/    # Endpointy REST API
+│   │   ├── model/         # Encje JPA (Course, Calendar, Notice, User, CalendarMember)
+│   │   ├── repository/    # Repozytoria JPA
+│   │   └── service/       # Logika biznesowa i autoryzacja
+│   ├── src/test/          # Testy jednostkowe JUnit 5
+│   └── pom.xml            # Konfiguracja Maven
+├── frontend/              # Frontend React + Vite
+│   ├── public/            # Favicon SVG oraz plik CNAME
 │   ├── src/
-│   │   ├── api/           # Klient HTTP z Axios
-│   │   ├── hooks/         # Customowe rozwiązania (np. useStomp)
-│   │   ├── pages/         # Widoki 
-│   │   └── App.jsx        # Routing i warstwa autoryzacji
+│   │   ├── api/           # Klient HTTP Axios z obsluga odswiezania JWT
+│   │   ├── components/    # Nawigacja, stopka, ochrona tras
+│   │   ├── hooks/         # Hook WebSocket useStomp
+│   │   ├── pages/         # Widoki aplikacji oraz strony prawne
+│   │   └── App.jsx        # Routing aplikacji
 │   ├── package.json
 │   └── vite.config.js
-├── src/                   # Lokalna logika Python (Event, Calendar, Storage)
 ├── tests/unit/            # Testy jednostkowe Python (pytest)
-├── nginx/                 # Warstwa ochronna Nginx (Reverse Proxy)
-└── dokumentacja.md        # Kompletna dokumentacja architektury
+├── nginx/                 # Konfiguracja Reverse Proxy i Rate Limiting
+└── dokumentacja.md        # Dokumentacja architektoniczna
 ```
 
-## Technologie
-
-### Backend
-- **Java 21** / **Spring Boot 3.4.1**
-- **Spring Data JPA** & **Hibernate**
-- **Spring Security** (Bezstanowa autoryzacja z użyciem biblioteki `jjwt`)
-- **Spring WebSockets / STOMP**
-- Baza danych: **PostgreSQL 16**
-
-### Frontend
-- **React.js 19**
-- **Vite 6** (Superszybkie narzędzie budujące)
-- **React Router 7**
-- Klient HTTP: **Axios** z interceptorami
-- Websockets: **@stomp/stompjs** + **sockjs-client**
-
-### Testy
-- **Python:** pytest (logika lokalna `src/`)
-- **Spring Boot:** JUnit 5 + Mockito + H2 in-memory
-- **Frontend:** Vitest + React Testing Library
-
-### Architektura
-- Konteneryzacja: **Docker** i **Docker Compose**
-- Serwer w roli fasady bezpieczeństwa: **Nginx**
-- CI/CD: **GitHub Actions** (blokuje merge przy failujących testach)
-
-## Uruchamianie testów
+## Uruchamianie testow
 
 ### Python
 ```bash
-pip install pytest
 python -m pytest tests/unit/ -v
 ```
 
@@ -109,19 +92,5 @@ cd backend-spring
 ```bash
 cd frontend
 npm install
-npm test
+npm test -- --run
 ```
-
-## CI/CD
-
-Pipeline GitHub Actions automatycznie uruchamia:
-1. **🐍 Python Unit Tests** – testy logiki lokalnej (Event, Calendar, Storage)
-2. **☕ Spring Boot Build & Tests** – kompilacja + testy backendu z PostgreSQL i Redis
-3. **⚛️ Frontend Build & Tests** – testy + build Vite
-4. **🐳 Docker Build** – budowanie obrazów (tylko na `main`)
-
-> **Ważne:** Aby blokować merge przy failujących testach, włącz w ustawieniach repozytorium:
-> Settings → Branches → Branch protection rules → Require status checks to pass before merging.
-
-## Zgłaszanie problemów i Rozwój
-Szczegółowe zestawienie architektoniczne i raport pokontrolny znajdziesz w pliku `dokumentacja.md`.

@@ -17,7 +17,6 @@ export default function CalendarsPage() {
   const [newHaslo, setNewHaslo] = useState('')
   const [savingPass, setSavingPass] = useState(false)
 
-  // Invite state
   const [inviteUsername, setInviteUsername] = useState('')
   const [inviting, setInviting] = useState(false)
 
@@ -28,10 +27,9 @@ export default function CalendarsPage() {
 
   const fetchPlany = async () => {
     try {
-      let { data } = await client.get('/calendars')
-      let myPlan = data.find(k => k.czy_wlasciciel)
+      const { data } = await client.get('/calendars')
+      let myPlan = data.find((k) => k.czy_wlasciciel)
 
-      // Leniwe tworzenie planu jeśli użytkownik jeszcze nie dodawał zajęć
       if (!myPlan) {
         const res = await client.post('/calendars', { nazwa: 'Plan Zajęć' })
         myPlan = res.data
@@ -40,16 +38,17 @@ export default function CalendarsPage() {
 
       setMójKalendarz(myPlan)
       setNewHaslo(myPlan.haslo || '')
-      setSubskrypcje(data.filter(k => !k.czy_wlasciciel))
-
+      setSubskrypcje(data.filter((k) => !k.czy_wlasciciel))
     } catch {
-      setError('Błąd pobierania planów.')
+      setError('Błąd pobierania danych o kalendarzach.')
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => { fetchPlany() }, [])
+  useEffect(() => {
+    fetchPlany()
+  }, [])
 
   const handleJoin = async (e) => {
     e.preventDefault()
@@ -60,10 +59,10 @@ export default function CalendarsPage() {
       await client.post('/calendars/join', { id: joinId, haslo: joinHaslo })
       setJoinId('')
       setJoinHaslo('')
-      flashSuccess('Dołączono do planu!')
+      flashSuccess('Dołączono do wybranego planu zajęć.')
       fetchPlany()
     } catch (err) {
-      setError(err.response?.data?.error || 'Błąd dołączania do planu. Może złe hasło?')
+      setError(err.response?.data?.error || 'Nie udało się dołączyć do planu. Sprawdź identyfikator i hasło.')
     } finally {
       setJoining(false)
     }
@@ -75,22 +74,22 @@ export default function CalendarsPage() {
     setError('')
     try {
       await client.patch(`/calendars/${mójKalendarz.id}`, { haslo: newHaslo })
-      flashSuccess('Hasło planu zostało zaktualizowane.')
+      flashSuccess('Hasło dostępowe planu zostało zaktualizowane.')
       fetchPlany()
     } catch {
-      setError('Błąd podczas zmiany hasła do planu.')
+      setError('Błąd podczas aktualizacji hasła planu.')
     } finally {
       setSavingPass(false)
     }
   }
 
   const handleLeave = async (id) => {
-    if (!window.confirm('Na pewno przestać obserwować ten plan?')) return
+    if (!window.confirm('Czy na pewno chcesz przestać obserwować ten plan?')) return
     try {
       await client.post(`/calendars/${id}/leave`)
       fetchPlany()
     } catch {
-      setError('Błąd opuszczania planu.')
+      setError('Błąd podczas odłączania obserwowanego planu.')
     }
   }
 
@@ -100,183 +99,212 @@ export default function CalendarsPage() {
     setInviting(true)
     setError('')
     try {
-      const { data } = await client.post(`/calendars/${mójKalendarz.id}/invite`, { username: inviteUsername })
+      const { data } = await client.post(`/calendars/${mójKalendarz.id}/invite`, {
+        username: inviteUsername,
+      })
       setInviteUsername('')
       flashSuccess(data.message)
       fetchPlany()
     } catch (err) {
-      setError(err.response?.data?.error || 'Błąd zapraszania użytkownika.')
+      setError(err.response?.data?.error || 'Błąd podczas zapraszania użytkownika.')
     } finally {
       setInviting(false)
     }
   }
 
   const handleKick = async (username) => {
-    if (!window.confirm(`Usunąć użytkownika "${username}" z planu?`)) return
+    if (!window.confirm(`Odebrać dostęp użytkownikowi "${username}"?`)) return
     setError('')
     try {
       const { data } = await client.post(`/calendars/${mójKalendarz.id}/kick`, { username })
       flashSuccess(data.message)
       fetchPlany()
     } catch (err) {
-      setError(err.response?.data?.error || 'Błąd usuwania użytkownika.')
+      setError(err.response?.data?.error || 'Błąd podczas usuwania użytkownika z planu.')
     }
   }
 
-  if (loading) return <div className="page"><div className="spinner" /></div>
+  if (loading) {
+    return (
+      <div className="page">
+        <div className="spinner" />
+      </div>
+    )
+  }
 
   const collaborators = mójKalendarz?.subskrybenci_lista || []
 
   return (
-    <div className="page calendars-page" style={{ maxWidth: '1000px', margin: '0 auto' }}>
-      <h1 className="mb-2" style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', color: 'var(--primary)'}}>
-         &gt; CENTRUM UDOSTĘPNIANIA PLANÓW
-      </h1>
+    <div className="page calendars-page" style={{ maxWidth: '1040px', margin: '0 auto' }}>
+      <h1 className="mb-1">Współdzielenie planów i grupy</h1>
       <p className="text-muted text-sm mb-2">
-        // Skopiuj swój kod, by udostępnić plan znajomym, lub dodaj kody innych by widzieć ich zajęcia w swoim kalendarzu.
+        Udostępnij identyfikator swojego planu innym osobom z roku lub nałóż plany innych grup na swój widok tygodniowy.
       </p>
 
       {error && <div className="alert alert-error mb-2">{error}</div>}
       {successMsg && <div className="alert alert-success mb-2">{successMsg}</div>}
 
       <div className="calendars-grid flex gap-2" style={{ alignItems: 'flex-start' }}>
-
-        {/* Lewa kolumna: Twój Plan */}
         <div className="cal-list w-full flex-col gap-2">
+          {mójKalendarz && (
+            <div className="card w-full">
+              <h3 className="mb-1" style={{ color: 'var(--primary)' }}>
+                Identyfikator Twojego planu
+              </h3>
+              <p className="text-muted mb-1 text-sm">
+                Przekaż poniższy kod znajomym, aby mogli obserwować Twoje zajęcia na własnej siatce tygodniowej.
+              </p>
+              <div className="bg-dark p-1 border-dashed mt-1 flex-between" style={{ alignItems: 'center' }}>
+                <code className="text-bright" style={{ fontSize: '0.92rem', wordBreak: 'break-all', userSelect: 'all' }}>
+                  {mójKalendarz.id}
+                </code>
+              </div>
 
-           {/* KARTA TWOJEGO KODU */}
-           {mójKalendarz && (
-             <div className="card w-full" style={{ borderColor: 'var(--primary)' }}>
-                <h3 className="mb-1" style={{color: 'var(--primary)'}}>&gt; TWÓJ PRYWATNY KOD UDOSTĘPNIANIA</h3>
-                <p className="text-muted mb-1 text-sm">Przekaż ten kod znajomym, aby mogli nałożyć Twoje zajęcia na ich własny widok.</p>
-                <div className="bg-dark p-1 border-dashed mt-1 flex-between" style={{ alignItems: 'center' }}>
-                   <code className="text-bright" style={{ fontSize: '1rem', wordBreak: 'break-all', userSelect: 'all' }}>
-                      {mójKalendarz.id}
-                   </code>
+              <form onSubmit={handleUpdatePassword} className="mt-2 pt-1" style={{ borderTop: '1px solid var(--border)' }}>
+                <p className="text-muted text-sm mb-1">Opcjonalne hasło wymagane przy dołączaniu przez kod:</p>
+                <div className="flex gap-1" style={{ alignItems: 'flex-end' }}>
+                  <div className="form-group w-full mb-0">
+                    <label htmlFor="plan-pass">Hasło dostępowe</label>
+                    <input
+                      id="plan-pass"
+                      type="text"
+                      value={newHaslo}
+                      onChange={(e) => setNewHaslo(e.target.value)}
+                      placeholder="Pozostaw puste, jeśli plan nie wymaga hasła"
+                    />
+                  </div>
+                  <button type="submit" className="btn btn-ghost" disabled={savingPass}>
+                    {savingPass ? '...' : 'Zapisz'}
+                  </button>
                 </div>
+              </form>
+            </div>
+          )}
 
-                <form onSubmit={handleUpdatePassword} className="mt-2 pt-1" style={{ borderTop: '1px dashed var(--border)' }}>
-                   <p className="text-muted text-sm mb-1">Możesz zabezpieczyć udostępnianie hasłem:</p>
-                   <div className="flex gap-1" style={{ alignItems: 'flex-end' }}>
-                     <div className="form-group w-full mb-0">
-                       <label>Zmień Hasło Dostępowe</label>
-                       <input
-                         type="text"
-                         value={newHaslo}
-                         onChange={e => setNewHaslo(e.target.value)}
-                         placeholder="Zostaw puste dla publicznego..."
-                       />
-                     </div>
-                     <button type="submit" className="btn btn-ghost" disabled={savingPass}>
-                       {savingPass ? '...' : 'ZAPISZ'}
-                     </button>
-                   </div>
-                </form>
-             </div>
-           )}
+          {mójKalendarz && (
+            <div className="card w-full">
+              <h3 className="mb-1" style={{ color: 'var(--primary)' }}>
+                Zaproś użytkownika po loginie
+              </h3>
+              <p className="text-muted text-sm mb-1">
+                Dodani użytkownicy otrzymają dostęp do odczytu Twojego planu zajęć.
+              </p>
 
-           {/* KARTA ZAPROŚ DO PLANU */}
-           {mójKalendarz && (
-             <div className="card w-full" style={{ borderColor: 'var(--border-bright)' }}>
-               <h3 className="mb-1" style={{color: 'var(--primary)'}}>&gt; ZAPROŚ DO SWOJEGO PLANU</h3>
-               <p className="text-muted text-sm mb-1">
-                 Zaproszeni użytkownicy zobaczą Twoje zajęcia w swoim widoku (tylko do odczytu).
-               </p>
+              <form onSubmit={handleInvite} className="mt-1">
+                <div className="flex gap-1" style={{ alignItems: 'flex-end' }}>
+                  <div className="form-group w-full mb-0">
+                    <label htmlFor="invite-user">Nazwa użytkownika</label>
+                    <input
+                      id="invite-user"
+                      type="text"
+                      value={inviteUsername}
+                      onChange={(e) => setInviteUsername(e.target.value)}
+                      placeholder="np. jan.kowalski"
+                      required
+                    />
+                  </div>
+                  <button type="submit" className="btn btn-primary" disabled={inviting}>
+                    {inviting ? '...' : 'Zaproś'}
+                  </button>
+                </div>
+              </form>
 
-               <form onSubmit={handleInvite} className="mt-1">
-                 <div className="flex gap-1" style={{ alignItems: 'flex-end' }}>
-                   <div className="form-group w-full mb-0">
-                     <label>Nazwa Użytkownika</label>
-                     <input
-                       type="text"
-                       value={inviteUsername}
-                       onChange={e => setInviteUsername(e.target.value)}
-                       placeholder="np. jan_kowalski"
-                       required
-                     />
-                   </div>
-                   <button type="submit" className="btn btn-primary" disabled={inviting}>
-                     {inviting ? '...' : 'ZAPROŚ'}
-                   </button>
-                 </div>
-               </form>
+              <div className="mt-2 pt-1" style={{ borderTop: '1px solid var(--border)' }}>
+                <p className="text-muted text-sm mb-1">
+                  Użytkownicy z dostępem do Twojego planu ({collaborators.length}):
+                </p>
+                {collaborators.length === 0 ? (
+                  <p className="text-muted text-sm">Brak przypisanych obserwatorów.</p>
+                ) : (
+                  <div className="cal-items">
+                    {collaborators.map((u) => (
+                      <div key={u.id} className="cal-item flex-between p-1 mt-1">
+                        <div>
+                          <span className="text-bright" style={{ fontSize: '0.9rem' }}>
+                            @{u.username}
+                          </span>
+                        </div>
+                        <button
+                          className="btn btn-danger btn-sm"
+                          onClick={() => handleKick(u.username)}
+                          title="Usuń dostęp"
+                        >
+                          Usuń
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
-               {/* Lista współpracowników */}
-               <div className="mt-2 pt-1" style={{ borderTop: '1px dashed var(--border)' }}>
-                 <p className="text-muted text-sm mb-1">
-                   Osoby z dostępem do Twojego planu ({collaborators.length}):
-                 </p>
-                 {collaborators.length === 0 ? (
-                   <p className="text-muted" style={{ fontSize: '0.85rem', fontStyle: 'italic' }}>
-                     Nikt jeszcze nie ma dostępu do Twojego planu.
-                   </p>
-                 ) : (
-                   <div className="cal-items">
-                     {collaborators.map(u => (
-                       <div key={u.id} className="cal-item flex-between p-1 mt-1 border-dashed">
-                         <div>
-                           <span className="text-bright" style={{ fontSize: '0.9rem' }}>@{u.username}</span>
-                         </div>
-                         <button
-                           className="btn btn-danger btn-sm"
-                           onClick={() => handleKick(u.username)}
-                           title="Usuń dostęp"
-                         >
-                           ✖ USUŃ
-                         </button>
-                       </div>
-                     ))}
-                   </div>
-                 )}
-               </div>
-             </div>
-           )}
-
-           {/* KARTA ZASUBSKRYBOWANYCH PLANÓW */}
-           <div className="card w-full">
-             <h3 className="mb-1" style={{color: 'var(--primary)'}}>OBSERWOWANE PLANY INNYCH</h3>
-             {subskrypcje.length === 0 ? (
-                <p className="text-muted mt-1">Obecnie nie obserwujesz żadnych innych planów.</p>
-             ) : (
-                <div className="cal-items mt-1">
-                  {subskrypcje.map(k => (
-                    <div key={k.id} className="cal-item flex-between p-1 mt-1 border-dashed">
-                       <div>
-                          <div className="cal-item-title text-bright">{k.nazwa} ({k.wlasciciel_nazwa})</div>
-                       </div>
-                       <div>
-                          <button className="btn btn-ghost btn-sm" onClick={() => handleLeave(k.id)} title="Przestań obserwować">✖ UKRYJ</button>
-                       </div>
+          <div className="card w-full">
+            <h3 className="mb-1" style={{ color: 'var(--primary)' }}>
+              Obserwowane plany innych użytkowników
+            </h3>
+            {subskrypcje.length === 0 ? (
+              <p className="text-muted text-sm mt-1">Nie obserwujesz obecnie żadnych zewnętrznych planów.</p>
+            ) : (
+              <div className="cal-items mt-1">
+                {subskrypcje.map((k) => (
+                  <div key={k.id} className="cal-item flex-between p-1 mt-1">
+                    <div>
+                      <div className="cal-item-title text-bright">
+                        {k.nazwa} ({k.wlasciciel_nazwa})
+                      </div>
                     </div>
-                  ))}
-                </div>
-             )}
-           </div>
-
+                    <div>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => handleLeave(k.id)}
+                        title="Przestań obserwować"
+                      >
+                        Opuść
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Prawa kolumna: Dołącz do planu przez ID */}
         <div className="cal-actions w-full flex-col gap-2" style={{ minWidth: '300px' }}>
-
-           {/* Dołącz */}
-           <div className="card w-full">
-              <h3 className="mb-1" style={{color: 'var(--primary)'}}>&gt; DODAJ KOD ZNAJOMEGO</h3>
-              <p className="text-muted text-sm mb-1">Po udanym podłączeniu, zajęcia wpadną na Twój widok główny jako READ-ONLY.</p>
-              <form onSubmit={handleJoin}>
-                 <div className="form-group">
-                   <label>Wklej Kod (ID) *</label>
-                   <input type="text" value={joinId} onChange={e => setJoinId(e.target.value)} placeholder="00000000-0000-0000-0000-000000000000" required />
-                 </div>
-                 <div className="form-group mt-1">
-                   <label>Hasło (Jeśli wymagane)</label>
-                   <input type="text" value={joinHaslo} onChange={e => setJoinHaslo(e.target.value)} placeholder="Opcjonalnie" />
-                 </div>
-                 <button type="submit" className="btn btn-primary w-full mt-2" disabled={joining}>
-                    {joining ? 'WYSZUKIWANIE...' : 'POBIERZ PLAN'}
-                 </button>
-              </form>
-           </div>
-
+          <div className="card w-full">
+            <h3 className="mb-1" style={{ color: 'var(--primary)' }}>
+              Dołącz do planu przez identyfikator
+            </h3>
+            <p className="text-muted text-sm mb-1">
+              Po dołączeniu zajęcia z wybranego planu pojawią się na Twoim widoku tygodniowym w trybie do odczytu.
+            </p>
+            <form onSubmit={handleJoin}>
+              <div className="form-group">
+                <label htmlFor="join-id">Identyfikator planu (UUID) *</label>
+                <input
+                  id="join-id"
+                  type="text"
+                  value={joinId}
+                  onChange={(e) => setJoinId(e.target.value)}
+                  placeholder="00000000-0000-0000-0000-000000000000"
+                  required
+                />
+              </div>
+              <div className="form-group mt-1">
+                <label htmlFor="join-pass">Hasło dostępowe (jeśli ustawiono)</label>
+                <input
+                  id="join-pass"
+                  type="text"
+                  value={joinHaslo}
+                  onChange={(e) => setJoinHaslo(e.target.value)}
+                  placeholder="Opcjonalnie"
+                />
+              </div>
+              <button type="submit" className="btn btn-primary w-full mt-2" disabled={joining}>
+                {joining ? 'Dołączanie...' : 'Dołącz do planu'}
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </div>

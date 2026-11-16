@@ -17,8 +17,7 @@ export default function RegisterPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    
-    // Uzywamy FormData aby obejsc problem z Chrome Autofill niezmieniającym stanu Reacta
+
     const formData = new FormData(e.target)
     const submittedUsername = formData.get('username') || form.username
     const submittedEmail = formData.get('email') || form.email
@@ -35,8 +34,8 @@ export default function RegisterPage() {
       navigate('/')
     } catch (err) {
       const data = err.response?.data || {}
-      let msg = 'Błąd rejestracji. Sprawdź poprawność danych (np. silne hasło).'
-      
+      let msg = 'Błąd rejestracji. Sprawdź poprawność wprowadzonych danych.'
+
       if (typeof data === 'object' && data !== null) {
         const messages = []
         for (const val of Object.values(data)) {
@@ -45,7 +44,7 @@ export default function RegisterPage() {
         }
         if (messages.length > 0) msg = messages[0]
       }
-      
+
       setError(msg)
     } finally {
       setLoading(false)
@@ -56,9 +55,9 @@ export default function RegisterPage() {
     <div className="auth-page">
       <div className="auth-card card">
         <div className="auth-header">
-          <span className="auth-icon">📅</span>
-          <h1>Kalendarz Uczelniany</h1>
-          <p className="text-muted">Utwórz nowe konto</p>
+          <span className="auth-brand-tag">Uni Calendar</span>
+          <h1>Rejestracja konta</h1>
+          <p className="text-muted">Utwórz konto, aby zapisywać i udostępniać swój rozkład zajęć</p>
         </div>
 
         <form onSubmit={handleSubmit} noValidate>
@@ -116,16 +115,21 @@ export default function RegisterPage() {
               />
             </div>
           </div>
-          
+
           {error && <div className="alert alert-error mb-2">{error}</div>}
           <button
             className="btn btn-primary w-full mt-2"
             type="submit"
             disabled={loading}
           >
-            {loading ? 'Rejestrowanie…' : 'Zarejestruj się'}
+            {loading ? 'Rejestrowanie...' : 'Zarejestruj się'}
           </button>
         </form>
+
+        <p className="text-center text-sm text-muted mt-2">
+          Tworząc konto, akceptujesz <Link to="/regulamin">Regulamin</Link> oraz{' '}
+          <Link to="/polityka-prywatnosci">Politykę prywatności</Link>.
+        </p>
 
         <div className="divider" />
         <p className="text-center text-sm text-muted">

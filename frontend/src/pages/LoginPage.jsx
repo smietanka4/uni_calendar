@@ -21,7 +21,7 @@ export default function LoginPage() {
       navigate('/')
     } catch (err) {
       const data = err.response?.data || {}
-      let msg = 'Błąd logowania. Sprawdź dane.'
+      let msg = 'Błąd logowania. Sprawdź nazwę użytkownika oraz hasło.'
       if (typeof data === 'object' && data !== null) {
         const messages = []
         for (const val of Object.values(data)) {
@@ -40,9 +40,9 @@ export default function LoginPage() {
     <div className="auth-page">
       <div className="auth-card card">
         <div className="auth-header">
-          <span className="auth-icon">📅</span>
-          <h1>Kalendarz Uczelniany</h1>
-          <p className="text-muted">Zaloguj się do swojego konta</p>
+          <span className="auth-brand-tag">Uni Calendar</span>
+          <h1>Logowanie</h1>
+          <p className="text-muted">Zaloguj się, aby zarządzać planem zajęć i grupami</p>
         </div>
 
         <form onSubmit={handleSubmit} noValidate>
@@ -71,14 +71,14 @@ export default function LoginPage() {
               required
             />
           </div>
-          
+
           {error && <div className="alert alert-error mb-2">{error}</div>}
           <button
             className="btn btn-primary w-full mt-2"
             type="submit"
             disabled={loading}
           >
-            {loading ? 'Logowanie…' : 'Zaloguj się'}
+            {loading ? 'Logowanie...' : 'Zaloguj się'}
           </button>
         </form>
 
@@ -88,7 +88,7 @@ export default function LoginPage() {
           <Link to="/register">Zarejestruj się</Link>
         </p>
         <p className="text-center text-sm text-muted mt-1">
-          Zapomniałeś hasła? <Link to="/zapomnialem-hasla">Zresetuj je</Link>
+          Zapomniałeś hasła? <Link to="/zapomnialem-hasla">Zresetuj hasło</Link>
         </p>
       </div>
     </div>

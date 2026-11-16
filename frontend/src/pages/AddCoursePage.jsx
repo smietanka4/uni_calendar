@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import client from '../api/client'
 
@@ -49,22 +49,31 @@ export default function AddCoursePage() {
     setError('')
     setSuccess('')
 
-    if (!form.nazwa.trim()) { setError('Podaj nazwę przedmiotu.'); return }
-    if (!form.data_od || !form.data_do) { setError('Podaj daty początku i końca zajęć.'); return }
-    if (form.data_do < form.data_od) { setError('Data końca musi być późniejsza niż data początku.'); return }
+    if (!form.nazwa.trim()) {
+      setError('Podaj nazwę przedmiotu.')
+      return
+    }
+    if (!form.data_od || !form.data_do) {
+      setError('Podaj daty początku i końca zajęć.')
+      return
+    }
+    if (form.data_do < form.data_od) {
+      setError('Data końca musi być późniejsza niż data początku.')
+      return
+    }
 
     setLoading(true)
     try {
       await client.post('/courses', form)
-      setSuccess('Zajęcia zostały dodane!')
+      setSuccess('Zajęcia zostały zapisane w planie.')
       setForm(EMPTY)
-      setTimeout(() => navigate('/'), 1200)
+      setTimeout(() => navigate('/'), 1000)
     } catch (err) {
       const data = err.response?.data || {}
       const firstKey = Object.keys(data)[0]
       const firstVal = data[firstKey]
-      const msg = Array.isArray(firstVal) ? firstVal[0] : firstVal || 'Błąd zapisu.'
-      setError(`[${firstKey}] ${msg}`)
+      const msg = Array.isArray(firstVal) ? firstVal[0] : firstVal || 'Błąd zapisu danych.'
+      setError(firstKey ? `${firstKey}: ${msg}` : msg)
     } finally {
       setLoading(false)
     }
@@ -74,25 +83,20 @@ export default function AddCoursePage() {
     <div className="page">
       <h1>Dodaj nowe zajęcia</h1>
       <p className="text-muted text-sm mt-1" style={{ marginBottom: '1.5rem' }}>
-        Zajęcia będą się powtarzać co tydzień w wybranym dniu przez cały podany okres.
+        Zajęcia są automatycznie powtarzane co tydzień w wybranym dniu w podanym przedziale dat.
       </p>
 
-      {error   && <div className="alert alert-error">{error}</div>}
+      {error && <div className="alert alert-error">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
 
       <form onSubmit={handleSubmit} className="card" noValidate>
-        <div className="form-group mb-1">
-          {/* Kalendarz Selector removed */}
-        </div>
-
-        {/* Nazwa + Typ */}
         <div className="form-row">
           <div className="form-group">
             <label htmlFor="add-nazwa">Nazwa przedmiotu *</label>
             <input
               id="add-nazwa"
               type="text"
-              placeholder="np. Programowanie w języku Golang"
+              placeholder="np. Algorytmy i struktury danych"
               value={form.nazwa}
               onChange={set('nazwa')}
               required
@@ -101,12 +105,15 @@ export default function AddCoursePage() {
           <div className="form-group">
             <label htmlFor="add-typ">Typ zajęć</label>
             <select id="add-typ" value={form.typ} onChange={set('typ')}>
-              {TYPY.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+              {TYPY.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
             </select>
           </div>
         </div>
 
-        {/* Dzień + Godzina + Czas trwania */}
         <div className="form-row">
           <div className="form-group">
             <label htmlFor="add-dzien">Dzień tygodnia</label>
@@ -115,7 +122,11 @@ export default function AddCoursePage() {
               value={form.dzien_tygodnia}
               onChange={(e) => setForm((p) => ({ ...p, dzien_tygodnia: Number(e.target.value) }))}
             >
-              {DAYS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
+              {DAYS.map((d) => (
+                <option key={d.value} value={d.value}>
+                  {d.label}
+                </option>
+              ))}
             </select>
           </div>
           <div className="form-group">
@@ -141,7 +152,6 @@ export default function AddCoursePage() {
           </div>
         </div>
 
-        {/* Daty */}
         <div className="form-row">
           <div className="form-group">
             <label htmlFor="add-od">Data pierwszych zajęć *</label>
@@ -166,7 +176,6 @@ export default function AddCoursePage() {
           </div>
         </div>
 
-        {/* Sala + Prowadzący */}
         <div className="form-row">
           <div className="form-group">
             <label htmlFor="add-sala">Sala</label>
@@ -183,19 +192,18 @@ export default function AddCoursePage() {
             <input
               id="add-prow"
               type="text"
-              placeholder="np. dr inż. Jan Tuziemski"
+              placeholder="np. dr inż. Jan Kowalski"
               value={form.prowadzacy}
               onChange={set('prowadzacy')}
             />
           </div>
         </div>
 
-        {/* Notatki */}
         <div className="form-group">
           <label htmlFor="add-notatki">Notatki (opcjonalnie)</label>
           <textarea
             id="add-notatki"
-            placeholder="Dodatkowe informacje, uwagi…"
+            placeholder="Dodatkowe informacje organizacyjne..."
             value={form.notatki}
             onChange={set('notatki')}
           />
@@ -203,7 +211,7 @@ export default function AddCoursePage() {
 
         <div className="flex gap-1 mt-2">
           <button type="submit" className="btn btn-primary" disabled={loading}>
-            {loading ? 'Zapisywanie…' : '💾 Zapisz zajęcia'}
+            {loading ? 'Zapisywanie...' : 'Zapisz zajęcia'}
           </button>
           <button type="button" className="btn btn-ghost" onClick={() => navigate('/')}>
             Anuluj

@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import PrivateRoute from './components/PrivateRoute'
 import Navbar from './components/Navbar'
+import Footer from './components/Footer'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import WeekPage from './pages/WeekPage'
@@ -11,6 +12,8 @@ import EditCoursePage from './pages/EditCoursePage'
 import CalendarsPage from './pages/CalendarsPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
+import TermsPage from './pages/TermsPage'
 
 export default function App() {
   return (
@@ -23,6 +26,10 @@ export default function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/zapomnialem-hasla" element={<ForgotPasswordPage />} />
           <Route path="/reset-hasla/:uid/:token" element={<ResetPasswordPage />} />
+          <Route path="/polityka-prywatnosci" element={<PrivacyPolicyPage />} />
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/regulamin" element={<TermsPage />} />
+          <Route path="/terms" element={<TermsPage />} />
 
           {/* Protected */}
           <Route element={<PrivateRoute />}>
@@ -36,6 +43,7 @@ export default function App() {
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        <Footer />
       </BrowserRouter>
     </AuthProvider>
   )

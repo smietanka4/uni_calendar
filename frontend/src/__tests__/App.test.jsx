@@ -1,5 +1,5 @@
 /**
- * Testy komponentu App – routing i renderowanie.
+ * Testy komponentu App - routing i renderowanie.
  */
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
@@ -33,6 +33,12 @@ vi.mock('../pages/ForgotPasswordPage', () => ({
 vi.mock('../pages/ResetPasswordPage', () => ({
   default: () => <div data-testid="reset-password-page">Reset Password</div>
 }))
+vi.mock('../pages/PrivacyPolicyPage', () => ({
+  default: () => <div data-testid="privacy-policy-page">Privacy Policy</div>
+}))
+vi.mock('../pages/TermsPage', () => ({
+  default: () => <div data-testid="terms-page">Terms Page</div>
+}))
 vi.mock('../components/Navbar', () => ({
   default: () => <nav data-testid="navbar">Navbar</nav>
 }))
@@ -40,17 +46,14 @@ vi.mock('../components/Navbar', () => ({
 describe('App', () => {
   it('renders without crashing', () => {
     render(<App />)
-    // App should render something
     expect(document.body).toBeTruthy()
   })
 
   it('shows login page for unauthenticated users', () => {
-    // Clear any stored auth
     localStorage.removeItem('access')
     localStorage.removeItem('refresh')
     localStorage.removeItem('user')
 
-    // Navigate to root - should redirect to login
     window.history.pushState({}, '', '/login')
     render(<App />)
 
@@ -63,5 +66,21 @@ describe('App', () => {
     render(<App />)
 
     expect(screen.getByTestId('register-page')).toBeInTheDocument()
+  })
+
+  it('shows privacy policy page at /polityka-prywatnosci', () => {
+    localStorage.removeItem('user')
+    window.history.pushState({}, '', '/polityka-prywatnosci')
+    render(<App />)
+
+    expect(screen.getByTestId('privacy-policy-page')).toBeInTheDocument()
+  })
+
+  it('shows terms page at /regulamin', () => {
+    localStorage.removeItem('user')
+    window.history.pushState({}, '', '/regulamin')
+    render(<App />)
+
+    expect(screen.getByTestId('terms-page')).toBeInTheDocument()
   })
 })

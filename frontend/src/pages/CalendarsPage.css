@@ -1,26 +1,24 @@
+/* ==========================================
+   CALENDARS PAGE - Group Sharing Layout
+   ========================================== */
+
 .calendars-grid {
   display: flex;
   flex-wrap: wrap;
 }
 
 @media (max-width: 768px) {
-  .calendars-grid {
-    flex-direction: column;
-  }
+  .calendars-grid { flex-direction: column; }
 }
 
 .cal-item {
-  border: 1px dashed var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   background: var(--surface-2);
-  transition: all var(--transition);
+  transition: border-color var(--transition), background-color var(--transition);
 }
 
 .cal-item:hover {
-  border-color: var(--primary);
-  background: var(--surface);
-  box-shadow: 2px 2px 0 var(--primary-dim);
-}
-
-.border-dashed {
-  border-bottom: 1px dashed var(--border);
+  border-color: var(--border-bright);
+  background: var(--surface-3);
 }

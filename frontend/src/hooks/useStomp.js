@@ -9,18 +9,16 @@ const useStomp = (calendarId) => {
     useEffect(() => {
         if (!calendarId) return;
 
-        const token = localStorage.getItem('access_token');
-        const wsUrl = 'http://localhost:8080/ws';
+        const token = localStorage.getItem('access') || localStorage.getItem('access_token');
+        const wsUrl = import.meta.env.VITE_WS_URL || `${window.location.origin}/ws`;
 
         const client = new Client({
-            // Using SockJS fallback since raw websockets might need additional CORS config in dev
             webSocketFactory: () => new SockJS(wsUrl),
-            connectHeaders: {
+            connectHeaders: token ? {
                 Authorization: `Bearer ${token}`
-            },
+            } : {},
             reconnectDelay: 5000,
             onConnect: () => {
-                console.log('Connected to WebSockets');
                 client.subscribe(`/topic/calendar/${calendarId}`, (message) => {
                     const parsed = JSON.parse(message.body);
                     setMessages((prev) => [...prev, parsed]);

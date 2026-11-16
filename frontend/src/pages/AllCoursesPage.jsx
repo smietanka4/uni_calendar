@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import client from '../api/client'
 import './AllCoursesPage.css'
 
@@ -16,7 +16,7 @@ export default function AllCoursesPage() {
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [deletingId, setDeletingId] = useState(null)
-  const [confirm, setConfirm] = useState(null) // id to confirm delete
+  const [confirm, setConfirm] = useState(null)
 
   const fetchAll = useCallback(async (q = '') => {
     setLoading(true)
@@ -31,7 +31,9 @@ export default function AllCoursesPage() {
     }
   }, [])
 
-  useEffect(() => { fetchAll() }, [fetchAll])
+  useEffect(() => {
+    fetchAll()
+  }, [fetchAll])
 
   const handleSearch = (e) => {
     e.preventDefault()
@@ -57,30 +59,37 @@ export default function AllCoursesPage() {
         <div>
           <h1>Wszystkie zajęcia</h1>
           <p className="text-muted text-sm">
-            {zajecia.length} {zajecia.length === 1 ? 'wpis' : zajecia.length < 5 ? 'wpisy' : 'wpisów'}
+            Łącznie w wykazie: {zajecia.length}{' '}
+            {zajecia.length === 1 ? 'pozycja' : zajecia.length < 5 ? 'pozycje' : 'pozycji'}
           </p>
         </div>
-        <a href="/dodaj" className="btn btn-primary">+ Dodaj zajęcia</a>
+        <Link to="/dodaj" className="btn btn-primary">
+          Dodaj zajęcia
+        </Link>
       </div>
 
-      {/* Search */}
       <form onSubmit={handleSearch} className="search-form mt-2">
         <input
           type="text"
-          placeholder="Szukaj po nazwie, prowadzącym, sali…"
+          placeholder="Filtruj po nazwie przedmiotu, prowadzącym lub sali..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="search-input"
           id="search-input"
         />
-        <button type="submit" className="btn btn-ghost">Szukaj</button>
+        <button type="submit" className="btn btn-ghost">
+          Szukaj
+        </button>
         {query && (
           <button
             type="button"
             className="btn btn-ghost"
-            onClick={() => { setQuery(''); fetchAll() }}
+            onClick={() => {
+              setQuery('')
+              fetchAll()
+            }}
           >
-            ✕
+            Wyczyść
           </button>
         )}
       </form>
@@ -89,23 +98,22 @@ export default function AllCoursesPage() {
         <div className="spinner" />
       ) : zajecia.length === 0 ? (
         <div className="empty-state card mt-3">
-          <span>📭</span>
-          <p>{query ? `Brak wyników dla "${query}"` : 'Brak zajęć. Dodaj pierwsze!'}</p>
+          <p>{query ? `Brak wyników dla zapytania "${query}".` : 'Brak zapisanych zajęć w planie.'}</p>
         </div>
       ) : (
         <div className="courses-table card mt-3">
           <table>
             <thead>
               <tr>
-                <th>Nazwa</th>
+                <th>Przedmiot</th>
                 <th>Typ</th>
-                <th>Grupa</th>
+                <th>Kalendarz</th>
                 <th>Dzień</th>
-                <th>Godzina</th>
+                <th>Godziny</th>
                 <th>Sala</th>
                 <th>Prowadzący</th>
                 <th>Okres</th>
-                <th></th>
+                <th>Akcje</th>
               </tr>
             </thead>
             <tbody>
@@ -115,18 +123,27 @@ export default function AllCoursesPage() {
                     <div className="course-name">{z.nazwa}</div>
                     {z.notatki && <div className="text-muted text-sm">{z.notatki}</div>}
                   </td>
-                  <td><span className={typBadgeClass(z.typ)}>{z.typ_display}</span></td>
                   <td>
-                    <span className="text-bright bg-muted px-1" style={{background: 'rgba(0,0,0,0.5)', padding: '2px 4px', fontSize: '0.8rem'}}>
+                    <span className={typBadgeClass(z.typ)}>{z.typ_display}</span>
+                  </td>
+                  <td>
+                    <span
+                      className="text-bright"
+                      style={{ background: 'var(--surface-2)', padding: '2px 6px', fontSize: '0.8rem' }}
+                    >
                       {z.kalendarz_nazwa}
                     </span>
                   </td>
                   <td>{DAYS[z.dzien_tygodnia]}</td>
-                  <td className="nowrap">{z.godzina_start.slice(0,5)}–{z.godzina_koniec}</td>
-                  <td>{z.sala || '—'}</td>
-                  <td>{z.prowadzacy || '—'}</td>
+                  <td className="nowrap">
+                    {z.godzina_start.slice(0, 5)} - {z.godzina_koniec}
+                  </td>
+                  <td>{z.sala || 'Brak'}</td>
+                  <td>{z.prowadzacy || 'Brak'}</td>
                   <td className="nowrap text-sm">
-                    {z.data_od}<br /><span className="text-muted">do {z.data_do}</span>
+                    {z.data_od}
+                    <br />
+                    <span className="text-muted">do {z.data_do}</span>
                   </td>
                   <td>
                     {z.czy_wlasciciel ? (
@@ -137,13 +154,13 @@ export default function AllCoursesPage() {
                             onClick={() => handleDelete(z.id)}
                             disabled={deletingId === z.id}
                           >
-                            {deletingId === z.id ? '…' : 'USUŃ'}
+                            {deletingId === z.id ? '...' : 'Potwierdź'}
                           </button>
                           <button
                             className="btn btn-ghost btn-sm"
                             onClick={() => setConfirm(null)}
                           >
-                            ANULUJ
+                            Anuluj
                           </button>
                         </div>
                       ) : (
@@ -153,19 +170,21 @@ export default function AllCoursesPage() {
                             onClick={() => navigate(`/edytuj/${z.id}`)}
                             title="Edytuj zajęcia"
                           >
-                            ✏️
+                            Edytuj
                           </button>
                           <button
                             className="btn btn-ghost btn-sm"
                             onClick={() => setConfirm(z.id)}
                             title="Usuń zajęcia"
                           >
-                            🗑
+                            Usuń
                           </button>
                         </div>
                       )
                     ) : (
-                      <span className="text-muted" title="Zajęcia tylko do odczytu">🔒 READ-ONLY</span>
+                      <span className="badge badge-inn" title="Zajęcia tylko do odczytu">
+                        Tylko odczyt
+                      </span>
                     )}
                   </td>
                 </tr>

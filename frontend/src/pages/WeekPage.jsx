@@ -8,12 +8,13 @@ import './WeekPage.css'
 const DAYS = ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela']
 const HOURS = Array.from({ length: 15 }, (_, i) => i + 7) // 7:00 to 21:00
 
-// Config for grid rendering
-const START_HOUR = 7;
-const MIN_PX = 1.3; // 1 min = 1.3px
-const CAL_HEIGHT = 15 * 60 * MIN_PX; // 15 hours total height
+const START_HOUR = 7
+const MIN_PX = 1.3
+const CAL_HEIGHT = 15 * 60 * MIN_PX
 
-function toISO(d) { return d.toISOString().split('T')[0] }
+function toISO(d) {
+  return d.toISOString().split('T')[0]
+}
 
 function mondayOf(d) {
   const day = new Date(d)
@@ -44,10 +45,8 @@ export default function WeekPage() {
   const [primaryCalendar, setPrimaryCalendar] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // STOMP WebSocket
-  const { messages: stompMessages } = useStomp(primaryCalendar?.id);
+  const { messages: stompMessages } = useStomp(primaryCalendar?.id)
 
-  // Opcje modala
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
@@ -57,11 +56,10 @@ export default function WeekPage() {
     try {
       const { data } = await client.get(`/courses/week?data=${toISO(mon)}`)
       setZajecia(data)
-      
+
       const calRes = await client.get('/calendars')
-      const myPlan = calRes.data.find(k => k.czy_wlasciciel)
+      const myPlan = calRes.data.find((k) => k.czy_wlasciciel)
       if (myPlan) setPrimaryCalendar(myPlan)
-      
     } catch {
       setZajecia([])
     } finally {
@@ -69,19 +67,20 @@ export default function WeekPage() {
     }
   }, [])
 
-  useEffect(() => { fetchWeek(monday) }, [monday, fetchWeek])
+  useEffect(() => {
+    fetchWeek(monday)
+  }, [monday, fetchWeek])
 
   useEffect(() => {
     if (stompMessages && stompMessages.length > 0) {
-      const latestMsg = stompMessages[stompMessages.length - 1];
+      const latestMsg = stompMessages[stompMessages.length - 1]
       if (latestMsg.type === 'COURSE_CREATED' || latestMsg.type === 'COURSE_UPDATED') {
-        // Simple refresh to avoid complex date math for week views
-        fetchWeek(monday);
+        fetchWeek(monday)
       } else if (latestMsg.type === 'COURSE_DELETED') {
-        setZajecia(prev => prev.filter(z => z.id !== latestMsg.payload.id));
+        setZajecia((prev) => prev.filter((z) => z.id !== latestMsg.payload.id))
       }
     }
-  }, [stompMessages, monday, fetchWeek]);
+  }, [stompMessages, monday, fetchWeek])
 
   const prevWeek = () => setMonday((m) => addDays(m, -7))
   const nextWeek = () => setMonday((m) => addDays(m, 7))
@@ -92,10 +91,10 @@ export default function WeekPage() {
     setDeleteError('')
     try {
       await client.delete(`/courses/${id}`)
-      setZajecia(prev => prev.filter(z => z.id !== id))
+      setZajecia((prev) => prev.filter((z) => z.id !== id))
       setSelectedEvent(null)
-    } catch (err) {
-      setDeleteError('Wystąpił błąd podczas usuwania. Odśwież stronę i spróbuj ponownie.')
+    } catch {
+      setDeleteError('Wystąpił błąd podczas usuwania zajęć. Odśwież stronę i spróbuj ponownie.')
     } finally {
       setDeleting(false)
     }
@@ -106,54 +105,80 @@ export default function WeekPage() {
 
   return (
     <div className="page page-wide">
-      {/* Modal / Popup Informacyjny */}
       {selectedEvent && (
         <div className="modal-overlay" onClick={() => setSelectedEvent(null)}>
-          <div className="modal-content card" onClick={e => e.stopPropagation()}>
+          <div className="modal-content card" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>
-                [ {selectedEvent.nazwa} ]
-                {!selectedEvent.czy_wlasciciel && <span className="ml-1" title="Zajęcia tylko do odczytu">🔒</span>}
+                {selectedEvent.nazwa}
+                {!selectedEvent.czy_wlasciciel && (
+                  <span className="badge badge-inn ml-1" title="Zajęcia tylko do odczytu">
+                    Tylko odczyt
+                  </span>
+                )}
               </h2>
-              <button className="btn-close" onClick={() => setSelectedEvent(null)}>X</button>
+              <button className="btn-close" onClick={() => setSelectedEvent(null)} aria-label="Zamknij">
+                X
+              </button>
             </div>
             <div className="modal-body">
               {deleteError && <div className="alert alert-error mb-2">{deleteError}</div>}
-              <p>&gt; TYP: <span className={typBadgeClass(selectedEvent.typ)}>{selectedEvent.typ_display}</span></p>
-              <p>&gt; GRUPA: <span className="text-bright bg-muted px-1" style={{background: 'rgba(0,0,0,0.5)', padding: '2px 4px'}}>{selectedEvent.kalendarz_nazwa}</span></p>
-              <p>&gt; CZAS: <span className="text-bright">{selectedEvent.godzina_start.slice(0,5)}–{selectedEvent.godzina_koniec}</span> <span className="text-muted">({selectedEvent.czas_trwania_min} min)</span></p>
-              <p>&gt; SALA: <span className="text-bright">{selectedEvent.sala || '—'}</span></p>
-              <p>&gt; PROW.: <span className="text-bright">{selectedEvent.prowadzacy || '—'}</span></p>
-              <p>&gt; OKRES: <span className="text-bright">{selectedEvent.data_od}</span> do <span className="text-bright">{selectedEvent.data_do}</span></p>
-              
+              <p>
+                Typ zajęć: <span className={typBadgeClass(selectedEvent.typ)}>{selectedEvent.typ_display}</span>
+              </p>
+              <p>
+                Kalendarz:{' '}
+                <span className="text-bright" style={{ background: 'var(--surface-2)', padding: '2px 6px' }}>
+                  {selectedEvent.kalendarz_nazwa}
+                </span>
+              </p>
+              <p>
+                Godziny:{' '}
+                <span className="text-bright">
+                  {selectedEvent.godzina_start.slice(0, 5)} - {selectedEvent.godzina_koniec}
+                </span>{' '}
+                <span className="text-muted">({selectedEvent.czas_trwania_min} min)</span>
+              </p>
+              <p>
+                Sala: <span className="text-bright">{selectedEvent.sala || 'Brak'}</span>
+              </p>
+              <p>
+                Prowadzący: <span className="text-bright">{selectedEvent.prowadzacy || 'Brak'}</span>
+              </p>
+              <p>
+                Okres: <span className="text-bright">{selectedEvent.data_od}</span> do{' '}
+                <span className="text-bright">{selectedEvent.data_do}</span>
+              </p>
+
               {selectedEvent.notatki && (
                 <div className="modal-notes mt-2">
-                  <div className="text-muted text-sm mb-1">// NOTATKI</div>
+                  <div className="text-muted text-sm mb-1">Notatki:</div>
                   {selectedEvent.notatki}
                 </div>
               )}
             </div>
-            {selectedEvent.czy_wlasciciel && (
+            {selectedEvent.czy_wlasciciel ? (
               <div className="modal-footer mt-3 flex gap-1">
-                <button 
+                <button
                   className="btn btn-ghost w-full"
                   onClick={() => navigate(`/edytuj/${selectedEvent.id}`)}
                 >
-                  ✏️ EDYTUJ
+                  Edytuj
                 </button>
-                <button 
-                  className="btn btn-danger w-full" 
+                <button
+                  className="btn btn-danger w-full"
                   onClick={() => handleDelete(selectedEvent.id)}
                   disabled={deleting}
                 >
-                  {deleting ? 'USUWANIE...' : '🗑️ USUŃ'}
+                  {deleting ? 'Usuwanie...' : 'Usuń'}
                 </button>
               </div>
-            )}
-            {!selectedEvent.czy_wlasciciel && (
-               <div className="modal-footer mt-3">
-                 <p className="text-muted text-sm text-center">Tylko administrator grupy może edytować te zajęcia.</p>
-               </div>
+            ) : (
+              <div className="modal-footer mt-3">
+                <p className="text-muted text-sm text-center">
+                  Tylko właściciel lub współtwórca planu może edytować te zajęcia.
+                </p>
+              </div>
             )}
           </div>
         </div>
@@ -161,15 +186,21 @@ export default function WeekPage() {
 
       <div className="week-header flex-between mb-2">
         <div>
-          <h1>WIDOK TYGODNIOWY</h1>
+          <h1>Rozkład tygodniowy</h1>
           <p className="text-muted text-sm mt-1">
-            {fmtDate(monday)} – {fmtDate(sunday)} {monday.getFullYear()}
+            {fmtDate(monday)} - {fmtDate(sunday)} {monday.getFullYear()}
           </p>
         </div>
         <div className="week-nav flex gap-1">
-          <button className="btn btn-ghost btn-sm" onClick={prevWeek}>&lt; POPRZEDNI</button>
-          <button className="btn btn-ghost btn-sm" onClick={thisWeek}>DZIŚ</button>
-          <button className="btn btn-ghost btn-sm" onClick={nextWeek}>NASTĘPNY &gt;</button>
+          <button className="btn btn-ghost btn-sm" onClick={prevWeek}>
+            Poprzedni
+          </button>
+          <button className="btn btn-ghost btn-sm" onClick={thisWeek}>
+            Bieżący tydzień
+          </button>
+          <button className="btn btn-ghost btn-sm" onClick={nextWeek}>
+            Następny
+          </button>
         </div>
       </div>
 
@@ -179,110 +210,101 @@ export default function WeekPage() {
         <div className="week-layout">
           <div className="cal-wrapper card">
             <div className="cal-grid">
-            {/* Top-Left Corner */}
-            <div className="cal-header-corner"></div>
+              <div className="cal-header-corner" />
 
-            {/* Day Headers */}
-            {daysOfWeek.map((d, i) => {
-              const dateStr = toISO(d)
-              const isToday = dateStr === toISO(new Date())
-              return (
-                <div key={dateStr} className={`cal-header-day ${isToday ? 'today' : ''}`}>
-                  <div className="cal-day-name">{DAYS[i]}</div>
-                  <div className="cal-day-date">{fmtDate(d)}</div>
-                </div>
-              )
-            })}
-
-            {/* Main Body with Times and Day Columns */}
-            <div className="cal-body" style={{ height: `${CAL_HEIGHT}px` }}>
-              {/* Horizontal background lines for each hour */}
-              <div className="cal-bg-lines">
-                {HOURS.map(h => (
-                  <div
-                    key={h}
-                    className="cal-bg-line"
-                    style={{ top: `${(h - START_HOUR) * 60 * MIN_PX}px` }}
-                  />
-                ))}
-              </div>
-
-              {/* Left Time Column */}
-              <div className="cal-time-col">
-                {HOURS.map(h => (
-                  <div
-                    key={h}
-                    className="cal-time-label"
-                    style={{ top: `${(h - START_HOUR) * 60 * MIN_PX}px` }}
-                  >
-                    {h.toString().padStart(2, '0')}:00
-                  </div>
-                ))}
-              </div>
-
-              {/* Day Columns containing absolute positioned events */}
-              {daysOfWeek.map((d) => {
+              {daysOfWeek.map((d, i) => {
                 const dateStr = toISO(d)
                 const isToday = dateStr === toISO(new Date())
-                const dayEvents = zajecia.filter(z => z.data_wystapienia === dateStr)
-
                 return (
-                  <div key={dateStr} className={`cal-day-col ${isToday ? 'today' : ''}`}>
-                    {dayEvents.map(z => {
-                      let top = 0, height = 90
-                      if (z.godzina_start) {
-                        const [h, m] = z.godzina_start.split(':').map(Number)
-                        const startMins = (h * 60 + (m || 0)) - (START_HOUR * 60)
-                        top = startMins * MIN_PX
-                        height = (z.czas_trwania_min || 90) * MIN_PX
-                      }
-
-                      return (
-                        <div
-                          key={z.id}
-                          className="cal-event"
-                          style={{ top: `${top}px`, height: `${height}px` }}
-                          onClick={() => setSelectedEvent(z)}
-                          title={`${z.nazwa} (${z.godzina_start.slice(0,5)}–${z.godzina_koniec})\nKliknij, aby rozwinąć szczegóły.`}
-                        >
-                          <div className="cal-event-time">
-                            {z.godzina_start.slice(0,5)}–{z.godzina_koniec}
-                          </div>
-                          <div className="cal-event-title">{z.nazwa}</div>
-                          
-                          {height > 50 && (
-                            <div className="cal-event-meta mt-1">
-                              <span className={typBadgeClass(z.typ)}>{z.typ_display}</span>
-                              {z.sala && <span style={{marginLeft:'0.4rem'}}>📍{z.sala}</span>}
-                            </div>
-                          )}
-                          
-                          {/* Dodany Prowadzący */}
-                          {height >= 70 && z.prowadzacy && (
-                            <div className="cal-event-prow mt-1">
-                              👤 {z.prowadzacy}
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
+                  <div key={dateStr} className={`cal-header-day ${isToday ? 'today' : ''}`}>
+                    <div className="cal-day-name">{DAYS[i]}</div>
+                    <div className="cal-day-date">{fmtDate(d)}</div>
                   </div>
                 )
               })}
+
+              <div className="cal-body" style={{ height: `${CAL_HEIGHT}px` }}>
+                <div className="cal-bg-lines">
+                  {HOURS.map((h) => (
+                    <div
+                      key={h}
+                      className="cal-bg-line"
+                      style={{ top: `${(h - START_HOUR) * 60 * MIN_PX}px` }}
+                    />
+                  ))}
+                </div>
+
+                <div className="cal-time-col">
+                  {HOURS.map((h) => (
+                    <div
+                      key={h}
+                      className="cal-time-label"
+                      style={{ top: `${(h - START_HOUR) * 60 * MIN_PX}px` }}
+                    >
+                      {h.toString().padStart(2, '0')}:00
+                    </div>
+                  ))}
+                </div>
+
+                {daysOfWeek.map((d) => {
+                  const dateStr = toISO(d)
+                  const isToday = dateStr === toISO(new Date())
+                  const dayEvents = zajecia.filter((z) => z.data_wystapienia === dateStr)
+
+                  return (
+                    <div key={dateStr} className={`cal-day-col ${isToday ? 'today' : ''}`}>
+                      {dayEvents.map((z) => {
+                        let top = 0
+                        let height = 90
+                        if (z.godzina_start) {
+                          const [h, m] = z.godzina_start.split(':').map(Number)
+                          const startMins = h * 60 + (m || 0) - START_HOUR * 60
+                          top = startMins * MIN_PX
+                          height = (z.czas_trwania_min || 90) * MIN_PX
+                        }
+
+                        return (
+                          <div
+                            key={z.id}
+                            className="cal-event"
+                            style={{ top: `${top}px`, height: `${height}px` }}
+                            onClick={() => setSelectedEvent(z)}
+                            title={`${z.nazwa} (${z.godzina_start.slice(0, 5)} - ${z.godzina_koniec})`}
+                          >
+                            <div className="cal-event-time">
+                              {z.godzina_start.slice(0, 5)} - {z.godzina_koniec}
+                            </div>
+                            <div className="cal-event-title">{z.nazwa}</div>
+
+                            {height > 50 && (
+                              <div className="cal-event-meta mt-1">
+                                <span className={typBadgeClass(z.typ)}>{z.typ_display}</span>
+                                {z.sala && <span>Sala {z.sala}</span>}
+                              </div>
+                            )}
+
+                            {height >= 70 && z.prowadzacy && (
+                              <div className="cal-event-prow mt-1">{z.prowadzacy}</div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           </div>
-        </div>
-        
-        {/* Prawa kolumna - Tablica Ogłoszeń */}
-        {primaryCalendar && (
-          <div className="noticeboard-wrapper" style={{ width: '350px', flexShrink: 0 }}>
-             <Noticeboard 
-                calendarId={primaryCalendar.id} 
-                canEdit={true} 
-                newStompMessages={stompMessages} 
-             />
-          </div>
-        )}
+
+          {primaryCalendar && (
+            <div className="noticeboard-wrapper" style={{ width: '340px', flexShrink: 0 }}>
+              <Noticeboard
+                calendarId={primaryCalendar.id}
+                canEdit={true}
+                newStompMessages={stompMessages}
+              />
+            </div>
+          )}
         </div>
       )}
     </div>

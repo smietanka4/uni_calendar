@@ -6,7 +6,7 @@ import './AuthPage.css'
 export default function ResetPasswordPage() {
   const { uid, token } = useParams()
   const navigate = useNavigate()
-  
+
   const [form, setForm] = useState({ password: '', passwordConfirm: '' })
   const [status, setStatus] = useState({ loading: false, success: '', error: '' })
 
@@ -14,34 +14,36 @@ export default function ResetPasswordPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
+
     if (form.password !== form.passwordConfirm) {
       setStatus({ ...status, error: 'Hasła nie są identyczne.' })
       return
     }
-    
+
     setStatus({ loading: true, success: '', error: '' })
     try {
-      const res = await client.post('/auth/password-reset-confirm', { 
-        uid, 
-        token, 
+      const res = await client.post('/auth/password-reset-confirm', {
+        uid,
+        token,
         password: form.password,
-        passwordConfirm: form.passwordConfirm 
+        passwordConfirm: form.passwordConfirm,
       })
-      
-      setStatus({ loading: false, success: res.data.message || 'Hasło zmienione pomyślnie!', error: '' })
+
+      setStatus({
+        loading: false,
+        success: res.data.message || 'Hasło zostało zmienione.',
+        error: '',
+      })
       setForm({ password: '', passwordConfirm: '' })
-      
-      // Przekierowanie do logowania po 2 sekundach
+
       setTimeout(() => {
         navigate('/login')
       }, 2000)
-      
     } catch (err) {
-      setStatus({ 
-        loading: false, 
-        success: '', 
-        error: err.response?.data?.error || 'Nieprawidłowy lub przeterminowany token.' 
+      setStatus({
+        loading: false,
+        success: '',
+        error: err.response?.data?.error || 'Nieprawidłowy lub wygasły token resetowania hasła.',
       })
     }
   }
@@ -50,9 +52,9 @@ export default function ResetPasswordPage() {
     <div className="auth-page">
       <div className="auth-card card">
         <div className="auth-header">
-          <span className="auth-icon">🔑</span>
-          <h1>Nowe Hasło</h1>
-          <p className="text-muted">Ustaw nowe hasło dla swojego konta</p>
+          <span className="auth-brand-tag">Odzyskiwanie dostępu</span>
+          <h1>Ustaw nowe hasło</h1>
+          <p className="text-muted">Wprowadź i potwierdź nowe hasło do konta</p>
         </div>
 
         {status.error && <div className="alert alert-error">{status.error}</div>}
@@ -60,7 +62,7 @@ export default function ResetPasswordPage() {
 
         <form onSubmit={handleSubmit} noValidate>
           <div className="form-group mb-1">
-            <label htmlFor="new-password">Nowe Hasło</label>
+            <label htmlFor="new-password">Nowe hasło</label>
             <input
               id="new-password"
               type="password"
@@ -73,7 +75,7 @@ export default function ResetPasswordPage() {
             />
           </div>
           <div className="form-group mb-2">
-            <label htmlFor="new-password-confirm">Powtórz Nowe Hasło</label>
+            <label htmlFor="new-password-confirm">Powtórz nowe hasło</label>
             <input
               id="new-password-confirm"
               type="password"
@@ -84,13 +86,13 @@ export default function ResetPasswordPage() {
               required
             />
           </div>
-          
+
           <button
             className="btn btn-primary w-full"
             type="submit"
-            disabled={status.loading || status.success}
+            disabled={status.loading || Boolean(status.success)}
           >
-            {status.loading ? 'Zapisywanie…' : 'Zmień Hasło'}
+            {status.loading ? 'Zapisywanie...' : 'Zmień hasło'}
           </button>
         </form>
 
