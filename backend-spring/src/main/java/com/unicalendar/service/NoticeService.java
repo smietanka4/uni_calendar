@@ -27,6 +27,7 @@ public class NoticeService {
     private final CalendarRepository calendarRepository;
     private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
 
+    @Transactional(readOnly = true)
     public List<NoticeDto> getNotices(UUID calendarId, User user) {
         Calendar calendar = calendarRepository.findById(calendarId)
                 .orElseThrow(() -> new ResourceNotFoundException("Kalendarz nie istnieje."));

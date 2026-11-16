@@ -13,11 +13,12 @@ import java.util.UUID;
 
 public interface UserLayerPreferenceRepository extends JpaRepository<UserLayerPreference, Long> {
 
-    List<UserLayerPreference> findAllByUserOrderBySortOrderAsc(User user);
+    @Query("SELECT p FROM UserLayerPreference p JOIN FETCH p.calendar WHERE p.user = :user ORDER BY p.sortOrder ASC")
+    List<UserLayerPreference> findAllByUserOrderBySortOrderAsc(@Param("user") User user);
 
     Optional<UserLayerPreference> findByUserAndCalendar(User user, Calendar calendar);
 
-    @Query("SELECT p FROM UserLayerPreference p WHERE p.user = :user AND p.calendar.id = :calendarId")
+    @Query("SELECT p FROM UserLayerPreference p JOIN FETCH p.calendar WHERE p.user = :user AND p.calendar.id = :calendarId")
     Optional<UserLayerPreference> findByUserAndCalendarId(@Param("user") User user,
                                                            @Param("calendarId") UUID calendarId);
 

@@ -36,6 +36,7 @@ public class CourseService {
     /**
      * Lista zajęć użytkownika (z filtrami).
      */
+    @Transactional(readOnly = true)
     public List<CourseDto> getCourses(User user, UUID calendarId, String query) {
         List<Course> courses;
 
@@ -62,6 +63,7 @@ public class CourseService {
     /**
      * Pobierz jedno zajęcie.
      */
+    @Transactional(readOnly = true)
     public CourseDto getCourse(Long id, User user) {
         Course course = findCourseOrThrow(id);
         return toDto(course, user);
@@ -208,6 +210,7 @@ public class CourseService {
      * Widok tygodniowy – odpowiednik Django ZajeciaViewSet.tydzien().
      * Identyczna logika: iteruje po zajęciach i sprawdza czy wypadają w danym tygodniu.
      */
+    @Transactional(readOnly = true)
     public List<CourseDto> getWeekView(User user, LocalDate date, UUID calendarId) {
         LocalDate targetDate = (date != null) ? date : LocalDate.now();
 

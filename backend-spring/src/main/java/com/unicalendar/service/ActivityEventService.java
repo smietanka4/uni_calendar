@@ -54,6 +54,7 @@ public class ActivityEventService {
         }
     }
 
+    @Transactional(readOnly = true)
     public Page<ActivityEventDto> getFeedForUser(User user, Pageable pageable) {
         return repository.findFeedForUser(user.getId(), pageable).map(this::toDto);
     }

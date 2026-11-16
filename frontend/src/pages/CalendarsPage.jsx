@@ -136,7 +136,10 @@ export default function CalendarsPage() {
     setChangingRole((prev) => ({ ...prev, [username]: true }))
     setError('')
     try {
-      const { data } = await client.put(`/calendars/${calId}/members/${username}/role`, { role: newRole })
+      const { data } = await client.post(`/calendars/${calId}/change-role`, {
+        username,
+        role: newRole,
+      })
       flashSuccess(data.message)
       fetchPlany()
     } catch (err) {

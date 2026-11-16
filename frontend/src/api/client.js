@@ -12,6 +12,15 @@ client.interceptors.request.use((config) => {
   return config
 })
 
+const clearSessionAndRedirect = () => {
+  localStorage.removeItem('access')
+  localStorage.removeItem('refresh')
+  localStorage.removeItem('user')
+  if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+    window.location.href = '/login'
+  }
+}
+
 // Auto-refresh on 401
 client.interceptors.response.use(
   (res) => res,
@@ -27,10 +36,10 @@ client.interceptors.response.use(
           original.headers.Authorization = `Bearer ${data.access}`
           return client(original)
         } catch {
-          localStorage.removeItem('access')
-          localStorage.removeItem('refresh')
-          window.location.href = '/login'
+          clearSessionAndRedirect()
         }
+      } else {
+        clearSessionAndRedirect()
       }
     }
     return Promise.reject(error)

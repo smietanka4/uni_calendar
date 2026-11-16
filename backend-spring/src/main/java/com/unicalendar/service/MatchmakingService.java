@@ -10,6 +10,7 @@ import com.unicalendar.repository.UserLayerPreferenceRepository;
 import com.unicalendar.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -27,6 +28,7 @@ public class MatchmakingService {
     private static final LocalTime DAY_START = LocalTime.of(8, 0);
     private static final LocalTime DAY_END = LocalTime.of(22, 0);
 
+    @Transactional(readOnly = true)
     public MatchmakingResponse findSlots(MatchmakingRequest request) {
         List<User> users = userRepository.findAllById(request.getUserIds());
         List<String> participantNames = users.stream().map(User::getUsername).collect(Collectors.toList());

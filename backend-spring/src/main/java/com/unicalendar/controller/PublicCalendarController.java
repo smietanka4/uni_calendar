@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.DayOfWeek;
@@ -29,6 +30,7 @@ import java.util.stream.Stream;
 @RestController
 @RequestMapping("/api/public")
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 @Tag(name = "public", description = "Publiczny dostęp do kalendarzy (bez logowania)")
 public class PublicCalendarController {
 

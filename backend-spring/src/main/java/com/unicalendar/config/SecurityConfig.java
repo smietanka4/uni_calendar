@@ -3,6 +3,7 @@ package com.unicalendar.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -14,12 +15,12 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
 
 /**
  * Konfiguracja Spring Security.
- * Odpowiednik Django middleware + DRF permission_classes + JWT.
  */
 @Configuration
 @EnableWebSecurity
@@ -34,13 +35,16 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource))
-            .csrf(csrf -> csrf.disable())   // API bezstanowe – JWT zamiast CSRF
+            .csrf(csrf -> csrf.disable())
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
+            .exceptionHandling(ex ->
+                ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+            )
             .authorizeHttpRequests(auth -> auth
-                // Endpointy publiczne (auth)
-                .requestMatchers("/api/auth/**", "/api/public/**").permitAll()
+                // Endpointy publiczne (auth, publiczne kalendarze oraz handshake SockJS/WebSocket)
+                .requestMatchers("/api/auth/**", "/api/public/**", "/ws/**").permitAll()
                 // Swagger / OpenAPI
                 .requestMatchers("/api/schema/**", "/api/docs/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 // Health check

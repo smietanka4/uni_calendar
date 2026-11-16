@@ -35,6 +35,7 @@ public class CalendarService {
 
     // ── Podstawowe operacje CRUD ──────────────────────────────────────────
 
+    @Transactional(readOnly = true)
     public List<CalendarDto> getCalendars(User user) {
         List<Calendar> calendars = calendarRepository.findAllByOwnerOrSubscriber(user);
         return calendars.stream()
@@ -42,6 +43,7 @@ public class CalendarService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public CalendarDto getCalendar(UUID id, User user) {
         Calendar cal = findCalendarOrThrow(id);
         return toDto(cal, user);
@@ -76,7 +78,9 @@ public class CalendarService {
         Calendar calendar = findCalendarOrThrow(id);
         checkOwner(calendar, user);
 
-        calendar.setName(request.getName());
+        if (request.getName() != null && !request.getName().isBlank()) {
+            calendar.setName(request.getName());
+        }
         if (request.getPassword() != null) calendar.setPassword(request.getPassword());
         if (request.getDescription() != null) calendar.setDescription(request.getDescription());
         if (request.getColor() != null) calendar.setColor(request.getColor());
@@ -275,6 +279,7 @@ public class CalendarService {
 
     // ── Preferencje Warstw ────────────────────────────────────────────────
 
+    @Transactional
     public List<LayerPreferenceDto> getLayerPreferences(User user) {
         // Upewnij się że istnieją preferencje dla wszystkich kalendarzy użytkownika
         List<Calendar> userCalendars = calendarRepository.findAllByOwnerOrSubscriber(user);
