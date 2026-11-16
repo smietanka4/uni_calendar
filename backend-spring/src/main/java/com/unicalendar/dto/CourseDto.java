@@ -68,4 +68,7 @@ public class CourseDto {
     // Opcjonalne – używane w widoku tygodniowym
     @JsonProperty("data_wystapienia")
     private String occurrenceDate;
+
+    @JsonProperty("source_course_id")
+    private Long sourceCourseId;
 }

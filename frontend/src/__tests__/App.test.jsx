@@ -33,6 +33,12 @@ vi.mock('../pages/ForgotPasswordPage', () => ({
 vi.mock('../pages/ResetPasswordPage', () => ({
   default: () => <div data-testid="reset-password-page">Reset Password</div>
 }))
+vi.mock('../pages/PublicCalendarPage', () => ({
+  default: () => <div data-testid="public-calendar-page">Public Calendar</div>
+}))
+vi.mock('../pages/FeedPage', () => ({
+  default: () => <div data-testid="feed-page">Feed Page</div>
+}))
 vi.mock('../pages/PrivacyPolicyPage', () => ({
   default: () => <div data-testid="privacy-policy-page">Privacy Policy</div>
 }))

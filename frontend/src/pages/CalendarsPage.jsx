@@ -3,7 +3,7 @@ import client from '../api/client'
 import './CalendarsPage.css'
 
 export default function CalendarsPage() {
-  const [mójKalendarz, setMójKalendarz] = useState(null)
+  const [myCalendars, setMyCalendars] = useState([])
   const [subskrypcje, setSubskrypcje] = useState([])
 
   const [loading, setLoading] = useState(true)
@@ -15,10 +15,19 @@ export default function CalendarsPage() {
   const [joining, setJoining] = useState(false)
 
   const [newHaslo, setNewHaslo] = useState('')
+  const [isPublic, setIsPublic] = useState(false)
   const [savingPass, setSavingPass] = useState(false)
 
   const [inviteUsername, setInviteUsername] = useState('')
+  const [inviteRole, setInviteRole] = useState('COLLABORATOR')
   const [inviting, setInviting] = useState(false)
+  const [changingRole, setChangingRole] = useState({})
+
+  const [expandedCalendars, setExpandedCalendars] = useState({})
+
+  const toggleCalendar = (calId) => {
+    setExpandedCalendars((prev) => ({ ...prev, [calId]: !prev[calId] }))
+  }
 
   const flashSuccess = (msg) => {
     setSuccessMsg(msg)
@@ -28,17 +37,24 @@ export default function CalendarsPage() {
   const fetchPlany = async () => {
     try {
       const { data } = await client.get('/calendars')
-      let myPlan = data.find((k) => k.czy_wlasciciel)
+      let myPlans = data.filter((k) => k.czy_wlasciciel)
 
-      if (!myPlan) {
-        const res = await client.post('/calendars', { nazwa: 'Plan Zajęć' })
-        myPlan = res.data
-        data.push(myPlan)
+      if (myPlans.length === 0) {
+        const res = await client.post('/calendars', { nazwa: 'Mój Główny Plan', typ: 'PERSONAL' })
+        myPlans.push(res.data)
+        data.push(res.data)
       }
 
-      setMójKalendarz(myPlan)
-      setNewHaslo(myPlan.haslo || '')
+      setMyCalendars(myPlans)
       setSubskrypcje(data.filter((k) => !k.czy_wlasciciel))
+
+      setExpandedCalendars((prev) => {
+        const next = { ...prev }
+        myPlans.forEach((cal) => {
+          if (!(cal.id in next)) next[cal.id] = false
+        })
+        return next
+      })
     } catch {
       setError('Błąd pobierania danych o kalendarzach.')
     } finally {
@@ -68,19 +84,25 @@ export default function CalendarsPage() {
     }
   }
 
-  const handleUpdatePassword = async (e) => {
+  const handleUpdateSettings = async (e, calId, passVal, publicVal) => {
     e.preventDefault()
     setSavingPass(true)
     setError('')
     try {
-      await client.patch(`/calendars/${mójKalendarz.id}`, { haslo: newHaslo })
-      flashSuccess('Hasło dostępowe planu zostało zaktualizowane.')
+      await client.patch(`/calendars/${calId}`, { haslo: passVal, publiczny: publicVal })
+      flashSuccess('Ustawienia planu zostały zaktualizowane.')
       fetchPlany()
     } catch {
-      setError('Błąd podczas aktualizacji hasła planu.')
+      setError('Błąd podczas zapisywania ustawień.')
     } finally {
       setSavingPass(false)
     }
+  }
+
+  const handleCopyPublicLink = (calId) => {
+    const link = `${window.location.origin}/public/${calId}`
+    navigator.clipboard.writeText(link)
+    flashSuccess('Skopiowano link publiczny do schowka.')
   }
 
   const handleLeave = async (id) => {
@@ -93,17 +115,15 @@ export default function CalendarsPage() {
     }
   }
 
-  const handleInvite = async (e) => {
+  const handleInvite = async (e, calId, username, role) => {
     e.preventDefault()
-    if (!inviteUsername.trim()) return
+    if (!username.trim()) return
     setInviting(true)
     setError('')
     try {
-      const { data } = await client.post(`/calendars/${mójKalendarz.id}/invite`, {
-        username: inviteUsername,
-      })
-      setInviteUsername('')
+      const { data } = await client.post(`/calendars/${calId}/invite`, { username, role })
       flashSuccess(data.message)
+      setInviteUsername('')
       fetchPlany()
     } catch (err) {
       setError(err.response?.data?.error || 'Błąd podczas zapraszania użytkownika.')
@@ -112,15 +132,41 @@ export default function CalendarsPage() {
     }
   }
 
-  const handleKick = async (username) => {
+  const handleChangeRole = async (calId, username, newRole) => {
+    setChangingRole((prev) => ({ ...prev, [username]: true }))
+    setError('')
+    try {
+      const { data } = await client.put(`/calendars/${calId}/members/${username}/role`, { role: newRole })
+      flashSuccess(data.message)
+      fetchPlany()
+    } catch (err) {
+      setError(err.response?.data?.error || 'Błąd podczas zmiany uprawnień.')
+    } finally {
+      setChangingRole((prev) => ({ ...prev, [username]: false }))
+    }
+  }
+
+  const handleKick = async (calId, username) => {
     if (!window.confirm(`Odebrać dostęp użytkownikowi "${username}"?`)) return
     setError('')
     try {
-      const { data } = await client.post(`/calendars/${mójKalendarz.id}/kick`, { username })
+      const { data } = await client.post(`/calendars/${calId}/kick`, { username })
       flashSuccess(data.message)
       fetchPlany()
     } catch (err) {
       setError(err.response?.data?.error || 'Błąd podczas usuwania użytkownika z planu.')
+    }
+  }
+
+  const handleCreateCalendar = async () => {
+    const nazwa = prompt('Podaj nazwę nowego kalendarza (np. Grupa laboratoryjna):')
+    if (!nazwa || !nazwa.trim()) return
+    try {
+      await client.post('/calendars', { nazwa: nazwa.trim(), typ: 'PERSONAL' })
+      flashSuccess('Utworzono nowy kalendarz.')
+      fetchPlany()
+    } catch (err) {
+      setError(err.response?.data?.error || 'Nie udało się utworzyć kalendarza.')
     }
   }
 
@@ -132,13 +178,11 @@ export default function CalendarsPage() {
     )
   }
 
-  const collaborators = mójKalendarz?.subskrybenci_lista || []
-
   return (
     <div className="page calendars-page" style={{ maxWidth: '1040px', margin: '0 auto' }}>
       <h1 className="mb-1">Współdzielenie planów i grupy</h1>
       <p className="text-muted text-sm mb-2">
-        Udostępnij identyfikator swojego planu innym osobom z roku lub nałóż plany innych grup na swój widok tygodniowy.
+        Zarządzaj własnymi kalendarzami, udostępniaj je innym lub dołączaj do planów znajomych.
       </p>
 
       {error && <div className="alert alert-error mb-2">{error}</div>}
@@ -146,98 +190,174 @@ export default function CalendarsPage() {
 
       <div className="calendars-grid flex gap-2" style={{ alignItems: 'flex-start' }}>
         <div className="cal-list w-full flex-col gap-2">
-          {mójKalendarz && (
-            <div className="card w-full">
-              <h3 className="mb-1" style={{ color: 'var(--primary)' }}>
-                Identyfikator Twojego planu
-              </h3>
-              <p className="text-muted mb-1 text-sm">
-                Przekaż poniższy kod znajomym, aby mogli obserwować Twoje zajęcia na własnej siatce tygodniowej.
-              </p>
-              <div className="bg-dark p-1 border-dashed mt-1 flex-between" style={{ alignItems: 'center' }}>
-                <code className="text-bright" style={{ fontSize: '0.92rem', wordBreak: 'break-all', userSelect: 'all' }}>
-                  {mójKalendarz.id}
-                </code>
-              </div>
+          {myCalendars.map((cal) => {
+            const isExpanded = expandedCalendars[cal.id]
+            const collaborators = cal.subskrybenci_lista || []
 
-              <form onSubmit={handleUpdatePassword} className="mt-2 pt-1" style={{ borderTop: '1px solid var(--border)' }}>
-                <p className="text-muted text-sm mb-1">Opcjonalne hasło wymagane przy dołączaniu przez kod:</p>
-                <div className="flex gap-1" style={{ alignItems: 'flex-end' }}>
-                  <div className="form-group w-full mb-0">
-                    <label htmlFor="plan-pass">Hasło dostępowe</label>
-                    <input
-                      id="plan-pass"
-                      type="text"
-                      value={newHaslo}
-                      onChange={(e) => setNewHaslo(e.target.value)}
-                      placeholder="Pozostaw puste, jeśli plan nie wymaga hasła"
-                    />
+            return (
+              <div key={cal.id} className="card w-full">
+                <div
+                  className="flex-between"
+                  style={{ cursor: 'pointer', userSelect: 'none' }}
+                  onClick={() => toggleCalendar(cal.id)}
+                >
+                  <div>
+                    <h3 style={{ color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      {cal.nazwa}
+                      {cal.typ && <span className="badge badge-inn">{cal.typ}</span>}
+                      {cal.publiczny && <span className="badge badge-lab">Publiczny</span>}
+                    </h3>
+                    <p className="text-muted text-sm mt-1">
+                      {collaborators.length} {collaborators.length === 1 ? 'obserwator' : 'obserwatorów'}
+                    </p>
                   </div>
-                  <button type="submit" className="btn btn-ghost" disabled={savingPass}>
-                    {savingPass ? '...' : 'Zapisz'}
+                  <button type="button" className="btn btn-ghost btn-sm">
+                    {isExpanded ? 'Zwiń' : 'Rozwiń'}
                   </button>
                 </div>
-              </form>
-            </div>
-          )}
 
-          {mójKalendarz && (
-            <div className="card w-full">
-              <h3 className="mb-1" style={{ color: 'var(--primary)' }}>
-                Zaproś użytkownika po loginie
-              </h3>
-              <p className="text-muted text-sm mb-1">
-                Dodani użytkownicy otrzymają dostęp do odczytu Twojego planu zajęć.
-              </p>
+                {isExpanded && (
+                  <div className="mt-2 pt-2" style={{ borderTop: '1px solid var(--border)' }}>
+                    <p className="text-muted mb-1 text-sm">Identyfikator planu (UUID):</p>
+                    <div className="bg-dark p-1 border-dashed flex-between" style={{ alignItems: 'center' }}>
+                      <code className="text-bright" style={{ fontSize: '0.88rem', wordBreak: 'break-all', userSelect: 'all' }}>
+                        {cal.id}
+                      </code>
+                    </div>
 
-              <form onSubmit={handleInvite} className="mt-1">
-                <div className="flex gap-1" style={{ alignItems: 'flex-end' }}>
-                  <div className="form-group w-full mb-0">
-                    <label htmlFor="invite-user">Nazwa użytkownika</label>
-                    <input
-                      id="invite-user"
-                      type="text"
-                      value={inviteUsername}
-                      onChange={(e) => setInviteUsername(e.target.value)}
-                      placeholder="np. jan.kowalski"
-                      required
-                    />
-                  </div>
-                  <button type="submit" className="btn btn-primary" disabled={inviting}>
-                    {inviting ? '...' : 'Zaproś'}
-                  </button>
-                </div>
-              </form>
-
-              <div className="mt-2 pt-1" style={{ borderTop: '1px solid var(--border)' }}>
-                <p className="text-muted text-sm mb-1">
-                  Użytkownicy z dostępem do Twojego planu ({collaborators.length}):
-                </p>
-                {collaborators.length === 0 ? (
-                  <p className="text-muted text-sm">Brak przypisanych obserwatorów.</p>
-                ) : (
-                  <div className="cal-items">
-                    {collaborators.map((u) => (
-                      <div key={u.id} className="cal-item flex-between p-1 mt-1">
-                        <div>
-                          <span className="text-bright" style={{ fontSize: '0.9rem' }}>
-                            @{u.username}
-                          </span>
-                        </div>
-                        <button
-                          className="btn btn-danger btn-sm"
-                          onClick={() => handleKick(u.username)}
-                          title="Usuń dostęp"
-                        >
-                          Usuń
-                        </button>
+                    <form
+                      onSubmit={(e) => handleUpdateSettings(e, cal.id, newHaslo || cal.haslo, isPublic)}
+                      className="mt-2 pt-1"
+                      style={{ borderTop: '1px solid var(--border)' }}
+                    >
+                      <div className="form-group mb-1">
+                        <label htmlFor={`pass-${cal.id}`}>Hasło dostępowe</label>
+                        <input
+                          id={`pass-${cal.id}`}
+                          type="text"
+                          defaultValue={cal.haslo || ''}
+                          onChange={(e) => setNewHaslo(e.target.value)}
+                          placeholder="Pozostaw puste dla planu otwartego"
+                        />
                       </div>
-                    ))}
+                      <div className="flex items-center gap-1 mb-2">
+                        <input
+                          type="checkbox"
+                          id={`public-${cal.id}`}
+                          defaultChecked={cal.publiczny}
+                          onChange={(e) => setIsPublic(e.target.checked)}
+                        />
+                        <label htmlFor={`public-${cal.id}`} style={{ fontSize: '0.85rem', cursor: 'pointer' }}>
+                          Udostępnij jako widok publiczny (dostępny bez logowania)
+                        </label>
+                      </div>
+                      <div className="flex gap-1">
+                        <button type="submit" className="btn btn-ghost btn-sm" disabled={savingPass}>
+                          {savingPass ? '...' : 'Zapisz ustawienia'}
+                        </button>
+                        {cal.publiczny && (
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => handleCopyPublicLink(cal.id)}
+                          >
+                            Kopiuj link publiczny
+                          </button>
+                        )}
+                      </div>
+                    </form>
+
+                    <div className="mt-2 pt-1" style={{ borderTop: '1px solid var(--border)' }}>
+                      <h4 className="mb-1 text-sm" style={{ color: 'var(--text-bright)' }}>
+                        Zaproś użytkownika do tego planu
+                      </h4>
+                      <form
+                        onSubmit={(e) => handleInvite(e, cal.id, inviteUsername, inviteRole)}
+                        className="mt-1 flex gap-1"
+                        style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}
+                      >
+                        <div className="form-group mb-0" style={{ flex: 1, minWidth: '150px' }}>
+                          <label>Użytkownik</label>
+                          <input
+                            type="text"
+                            value={inviteUsername}
+                            onChange={(e) => setInviteUsername(e.target.value)}
+                            placeholder="np. jan.kowalski"
+                          />
+                        </div>
+                        <div className="form-group mb-0" style={{ width: '140px' }}>
+                          <label>Rola</label>
+                          <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
+                            <option value="COLLABORATOR">Współtwórca</option>
+                            <option value="FOLLOWER">Obserwator</option>
+                          </select>
+                        </div>
+                        <button type="submit" className="btn btn-primary btn-sm" disabled={inviting}>
+                          {inviting ? '...' : 'Dodaj'}
+                        </button>
+                      </form>
+
+                      <div className="mt-2">
+                        <p className="text-muted text-sm mb-1">
+                          Użytkownicy z dostępem ({collaborators.length}):
+                        </p>
+                        {collaborators.length === 0 ? (
+                          <p className="text-muted text-sm">Brak przypisanych członków.</p>
+                        ) : (
+                          <div className="cal-items">
+                            {collaborators.map((u) => (
+                              <div
+                                key={u.id}
+                                className="cal-item flex-between p-1 mt-1"
+                                style={{ alignItems: 'center', gap: '0.5rem' }}
+                              >
+                                <div style={{ flex: 1 }}>
+                                  <span className="text-bright" style={{ fontSize: '0.9rem' }}>
+                                    @{u.username}
+                                  </span>
+                                  <span
+                                    className={`badge ${u.role === 'COLLABORATOR' ? 'badge-cwi' : 'badge-inn'}`}
+                                    style={{ marginLeft: '0.5rem' }}
+                                  >
+                                    {u.role === 'COLLABORATOR' ? 'ZAPIS' : 'ODCZYT'}
+                                  </span>
+                                </div>
+                                <div className="flex gap-1">
+                                  <button
+                                    className="btn btn-ghost btn-sm"
+                                    disabled={changingRole[u.username]}
+                                    onClick={() =>
+                                      handleChangeRole(
+                                        cal.id,
+                                        u.username,
+                                        u.role === 'COLLABORATOR' ? 'FOLLOWER' : 'COLLABORATOR'
+                                      )
+                                    }
+                                  >
+                                    {changingRole[u.username]
+                                      ? '...'
+                                      : u.role === 'COLLABORATOR'
+                                      ? 'Ogranicz do odczytu'
+                                      : 'Nadaj zapis'}
+                                  </button>
+                                  <button
+                                    className="btn btn-danger btn-sm"
+                                    onClick={() => handleKick(cal.id, u.username)}
+                                  >
+                                    Usuń
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
-            </div>
-          )}
+            )
+          })}
 
           <div className="card w-full">
             <h3 className="mb-1" style={{ color: 'var(--primary)' }}>
@@ -273,10 +393,10 @@ export default function CalendarsPage() {
         <div className="cal-actions w-full flex-col gap-2" style={{ minWidth: '300px' }}>
           <div className="card w-full">
             <h3 className="mb-1" style={{ color: 'var(--primary)' }}>
-              Dołącz do planu przez identyfikator
+              Dołącz do planu przez kod
             </h3>
             <p className="text-muted text-sm mb-1">
-              Po dołączeniu zajęcia z wybranego planu pojawią się na Twoim widoku tygodniowym w trybie do odczytu.
+              Wprowadź kod planu udostępniony przez inną osobę, aby nałożyć go na swój harmonogram.
             </p>
             <form onSubmit={handleJoin}>
               <div className="form-group">
@@ -291,19 +411,36 @@ export default function CalendarsPage() {
                 />
               </div>
               <div className="form-group mt-1">
-                <label htmlFor="join-pass">Hasło dostępowe (jeśli ustawiono)</label>
+                <label htmlFor="join-pass">Hasło dostępowe (opcjonalnie)</label>
                 <input
                   id="join-pass"
                   type="text"
                   value={joinHaslo}
                   onChange={(e) => setJoinHaslo(e.target.value)}
-                  placeholder="Opcjonalnie"
+                  placeholder="Jeśli wymagane"
                 />
               </div>
               <button type="submit" className="btn btn-primary w-full mt-2" disabled={joining}>
                 {joining ? 'Dołączanie...' : 'Dołącz do planu'}
               </button>
             </form>
+          </div>
+
+          <div className="card w-full">
+            <h3 className="mb-1" style={{ color: 'var(--primary)' }}>
+              Nowy kalendarz (warstwa)
+            </h3>
+            <p className="text-muted text-sm mb-1">
+              Możesz utworzyć maksymalnie 5 własnych kalendarzy. Każdy pojawi się jako osobna warstwa w widoku tygodnia.
+            </p>
+            <button
+              type="button"
+              className="btn btn-ghost w-full mt-1"
+              onClick={handleCreateCalendar}
+              disabled={myCalendars.length >= 5}
+            >
+              {myCalendars.length >= 5 ? 'Osiągnięto limit (5/5)' : 'Utwórz nowy kalendarz'}
+            </button>
           </div>
         </div>
       </div>

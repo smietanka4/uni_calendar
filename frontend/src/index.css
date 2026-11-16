@@ -128,7 +128,7 @@ p {
 .page::-webkit-scrollbar-thumb:hover { background: var(--primary); }
 
 .page.page-wide {
-  max-width: 1440px;
+  max-width: 1800px;
   overflow: hidden;
   display: flex;
   flex-direction: column;

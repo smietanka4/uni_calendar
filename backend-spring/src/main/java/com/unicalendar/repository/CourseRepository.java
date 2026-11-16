@@ -50,4 +50,13 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
            "ORDER BY co.dayOfWeek, co.startTime")
     List<Course> searchByUser(@Param("user") User user,
                               @Param("query") String query);
+    /**
+     * Publiczny dostęp – wszystkie kursy dla danego kalendarza (bez filtra użytkownika).
+     */
+    @Query("SELECT co FROM Course co LEFT JOIN FETCH co.calendar c LEFT JOIN FETCH c.owner WHERE c.id = :calendarId ORDER BY co.dayOfWeek, co.startTime")
+    List<Course> findAllByCalendarId(@Param("calendarId") UUID calendarId);
+
+    List<Course> findByCalendarIdIn(List<UUID> calendarIds);
+
+    List<Course> findBySourceCourseIdAndCalendarId(Long sourceCourseId, UUID calendarId);
 }

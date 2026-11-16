@@ -14,9 +14,11 @@
 }
 
 .cal-wrapper {
-  flex: 1;
+  flex: 1 1 0;
   min-height: 0;
+  min-width: 0;
   overflow: auto;
+  max-height: calc(100vh - 200px);
   padding: 0 !important;
   border-radius: var(--radius-sm);
 }
@@ -30,11 +32,11 @@
 .cal-wrapper::-webkit-scrollbar-thumb:hover { background: var(--primary); }
 .cal-wrapper { scrollbar-width: thin; scrollbar-color: var(--border-bright) var(--surface); }
 
-/* Grid */
+/* Grid: 1 time column (75px) + 7 days */
 .cal-grid {
   min-width: 900px;
   display: grid;
-  grid-template-columns: 64px repeat(7, 1fr);
+  grid-template-columns: 75px repeat(7, 1fr);
   grid-template-rows: auto 1fr;
 }
 
@@ -82,13 +84,13 @@
 .cal-body {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 64px repeat(7, 1fr);
+  grid-template-columns: 75px repeat(7, 1fr);
   position: relative;
 }
 
 .cal-bg-lines {
   position: absolute;
-  top: 0; left: 64px; right: 0; bottom: 0;
+  top: 0; left: 75px; right: 0; bottom: 0;
   pointer-events: none;
   z-index: 0;
 }
@@ -109,8 +111,8 @@
 }
 .cal-time-label {
   position: absolute;
-  right: 0.5rem;
-  transform: translateY(-50%);
+  left: 50%;
+  transform: translate(-50%, -50%);
   font-family: var(--font-mono);
   font-size: 0.72rem;
   font-weight: 500;
@@ -126,7 +128,7 @@
 .cal-day-col:last-child { border-right: none; }
 .cal-day-col.today { background: rgba(229, 149, 0, 0.03); }
 
-/* Event blocks (Minimal functional hover, no layout shifts) */
+/* Event blocks */
 .cal-event {
   position: absolute;
   left: 3px; right: 3px;
@@ -267,17 +269,25 @@
 
 .week-layout {
   display: flex;
-  gap: 1.25rem;
-  align-items: stretch;
-  flex: 1;
-  min-height: 0;
+  gap: 1rem;
+  align-items: flex-start;
+  flex-wrap: nowrap;
+  overflow: visible;
+  margin-bottom: 2rem;
 }
 
-@media (max-width: 960px) {
-  .week-layout {
-    flex-direction: column;
-  }
-  .noticeboard-wrapper {
-    width: 100% !important;
-  }
+/* Panel warstw */
+.layers-panel {
+  flex-shrink: 0;
+  width: 200px;
+  overflow-y: auto;
+  max-height: calc(100vh - 200px);
+}
+
+/* Tablica ogłoszeń */
+.noticeboard-wrapper {
+  flex-shrink: 0;
+  width: 320px;
+  overflow-y: auto;
+  max-height: calc(100vh - 200px);
 }

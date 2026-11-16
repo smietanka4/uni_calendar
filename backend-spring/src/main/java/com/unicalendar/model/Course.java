@@ -56,6 +56,9 @@ public class Course {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    @Column(name = "source_course_id")
+    private Long sourceCourseId;
+
     /**
      * Oblicza godzinę zakończenia na podstawie startTime + durationMinutes.
      */

@@ -75,6 +75,7 @@ public class AuthService {
         }
 
         User user = userRepository.findByUsername(request.getUsername())
+                .or(() -> userRepository.findByEmailIgnoreCase(request.getUsername()))
                 .orElseThrow(() -> new BadRequestException("Nieprawidłowy login lub hasło."));
 
         return buildAuthResponse(user);

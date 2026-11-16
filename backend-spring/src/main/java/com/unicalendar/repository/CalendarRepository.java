@@ -25,4 +25,10 @@ public interface CalendarRepository extends JpaRepository<Calendar, UUID> {
 
     Optional<Calendar> findFirstByOwner(User owner);
     long countByOwner(User owner);
+
+    /** Publiczny dostęp – tylko kalendarze z flagą isPublic=true */
+    Optional<Calendar> findByIdAndIsPublicTrue(UUID id);
+
+    /** Wszystkie publiczne kalendarze */
+    List<Calendar> findByIsPublicTrueOrderByIdAsc();
 }

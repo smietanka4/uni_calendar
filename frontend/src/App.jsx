@@ -12,6 +12,8 @@ import EditCoursePage from './pages/EditCoursePage'
 import CalendarsPage from './pages/CalendarsPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
+import PublicCalendarPage from './pages/PublicCalendarPage'
+import FeedPage from './pages/FeedPage'
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
 import TermsPage from './pages/TermsPage'
 
@@ -26,6 +28,7 @@ export default function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/zapomnialem-hasla" element={<ForgotPasswordPage />} />
           <Route path="/reset-hasla/:uid/:token" element={<ResetPasswordPage />} />
+          <Route path="/public/:calendarId" element={<PublicCalendarPage />} />
           <Route path="/polityka-prywatnosci" element={<PrivacyPolicyPage />} />
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/regulamin" element={<TermsPage />} />
@@ -34,6 +37,7 @@ export default function App() {
           {/* Protected */}
           <Route element={<PrivateRoute />}>
             <Route path="/" element={<WeekPage />} />
+            <Route path="/feed" element={<FeedPage />} />
             <Route path="/wszystkie" element={<AllCoursesPage />} />
             <Route path="/grupy" element={<CalendarsPage />} />
             <Route path="/dodaj" element={<AddCoursePage />} />

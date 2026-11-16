@@ -6,11 +6,11 @@ import Noticeboard from './Noticeboard'
 import './WeekPage.css'
 
 const DAYS = ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela']
-const HOURS = Array.from({ length: 15 }, (_, i) => i + 7) // 7:00 to 21:00
+const HOURS = Array.from({ length: 24 }, (_, i) => i) // 0:00 to 23:00
 
-const START_HOUR = 7
+const START_HOUR = 0
 const MIN_PX = 1.3
-const CAL_HEIGHT = 15 * 60 * MIN_PX
+const CAL_HEIGHT = 24 * 60 * MIN_PX
 
 function toISO(d) {
   return d.toISOString().split('T')[0]
@@ -42,6 +42,7 @@ export default function WeekPage() {
   const navigate = useNavigate()
   const [monday, setMonday] = useState(() => mondayOf(new Date()))
   const [zajecia, setZajecia] = useState([])
+  const [layers, setLayers] = useState([])
   const [primaryCalendar, setPrimaryCalendar] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -60,8 +61,12 @@ export default function WeekPage() {
       const calRes = await client.get('/calendars')
       const myPlan = calRes.data.find((k) => k.czy_wlasciciel)
       if (myPlan) setPrimaryCalendar(myPlan)
+
+      const layersRes = await client.get('/layer-preferences')
+      setLayers(layersRes.data)
     } catch {
       setZajecia([])
+      setLayers([])
     } finally {
       setLoading(false)
     }
@@ -100,6 +105,17 @@ export default function WeekPage() {
     }
   }
 
+  const toggleLayer = async (layerId, currentVisible) => {
+    try {
+      setLayers((prev) =>
+        prev.map((l) => (l.calendar_id === layerId ? { ...l, widoczna: !currentVisible } : l))
+      )
+      await client.put(`/layer-preferences/${layerId}`, { widoczna: !currentVisible })
+    } catch {
+      fetchWeek(monday)
+    }
+  }
+
   const sunday = addDays(monday, 6)
   const daysOfWeek = Array.from({ length: 7 }, (_, i) => addDays(monday, i))
 
@@ -111,6 +127,11 @@ export default function WeekPage() {
             <div className="modal-header">
               <h2>
                 {selectedEvent.nazwa}
+                {selectedEvent.source_course_id && (
+                  <span className="badge badge-sem ml-1" title="Zajęcia pochodzą z szablonu">
+                    Szablon
+                  </span>
+                )}
                 {!selectedEvent.czy_wlasciciel && (
                   <span className="badge badge-inn ml-1" title="Zajęcia tylko do odczytu">
                     Tylko odczyt
@@ -208,7 +229,41 @@ export default function WeekPage() {
         <div className="spinner" />
       ) : (
         <div className="week-layout">
-          <div className="cal-wrapper card">
+          {/* Lewa kolumna: Warstwy */}
+          <div className="layers-panel card">
+            <h3 className="mb-2 text-sm text-muted">Warstwy kalendarzy</h3>
+            <div className="flex flex-col gap-1">
+              {layers.map((layer) => (
+                <label
+                  key={layer.calendar_id}
+                  className="flex items-center gap-1"
+                  style={{ fontSize: '0.85rem', cursor: 'pointer' }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={layer.widoczna}
+                    onChange={() => toggleLayer(layer.calendar_id, layer.widoczna)}
+                    style={{ accentColor: layer.kolor }}
+                  />
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      width: '10px',
+                      height: '10px',
+                      backgroundColor: layer.kolor,
+                      borderRadius: '2px',
+                    }}
+                  />
+                  <span className="truncate" title={layer.calendar_name}>
+                    {layer.calendar_name}
+                  </span>
+                </label>
+              ))}
+              {layers.length === 0 && <span className="text-muted text-sm">Brak przypisanych warstw.</span>}
+            </div>
+          </div>
+
+          <div className="cal-wrapper card" style={{ flexGrow: 1 }}>
             <div className="cal-grid">
               <div className="cal-header-corner" />
 
@@ -239,7 +294,7 @@ export default function WeekPage() {
                     <div
                       key={h}
                       className="cal-time-label"
-                      style={{ top: `${(h - START_HOUR) * 60 * MIN_PX}px` }}
+                      style={{ top: `${((h - START_HOUR) * 60 + 30) * MIN_PX}px` }}
                     >
                       {h.toString().padStart(2, '0')}:00
                     </div>
@@ -249,7 +304,11 @@ export default function WeekPage() {
                 {daysOfWeek.map((d) => {
                   const dateStr = toISO(d)
                   const isToday = dateStr === toISO(new Date())
-                  const dayEvents = zajecia.filter((z) => z.data_wystapienia === dateStr)
+                  const dayEvents = zajecia.filter((z) => {
+                    if (z.data_wystapienia !== dateStr) return false
+                    const layer = layers.find((l) => l.calendar_id === z.kalendarz)
+                    return layer ? layer.widoczna : true
+                  })
 
                   return (
                     <div key={dateStr} className={`cal-day-col ${isToday ? 'today' : ''}`}>
@@ -263,18 +322,32 @@ export default function WeekPage() {
                           height = (z.czas_trwania_min || 90) * MIN_PX
                         }
 
+                        const layer = layers.find((l) => l.calendar_id === z.kalendarz)
+                        const bgColor = layer?.kolor
+
                         return (
                           <div
                             key={z.id}
                             className="cal-event"
-                            style={{ top: `${top}px`, height: `${height}px` }}
+                            style={{
+                              top: `${top}px`,
+                              height: `${height}px`,
+                              backgroundColor: bgColor || undefined,
+                            }}
                             onClick={() => setSelectedEvent(z)}
                             title={`${z.nazwa} (${z.godzina_start.slice(0, 5)} - ${z.godzina_koniec})`}
                           >
                             <div className="cal-event-time">
                               {z.godzina_start.slice(0, 5)} - {z.godzina_koniec}
                             </div>
-                            <div className="cal-event-title">{z.nazwa}</div>
+                            <div className="cal-event-title">
+                              {z.source_course_id && (
+                                <span className="badge badge-sem" style={{ marginRight: '4px', fontSize: '0.65rem' }}>
+                                  SZABLON
+                                </span>
+                              )}
+                              {z.nazwa}
+                            </div>
 
                             {height > 50 && (
                               <div className="cal-event-meta mt-1">
@@ -297,7 +370,7 @@ export default function WeekPage() {
           </div>
 
           {primaryCalendar && (
-            <div className="noticeboard-wrapper" style={{ width: '340px', flexShrink: 0 }}>
+            <div className="noticeboard-wrapper">
               <Noticeboard
                 calendarId={primaryCalendar.id}
                 canEdit={true}
